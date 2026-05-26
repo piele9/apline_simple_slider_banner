@@ -254,8 +254,11 @@ class apline_simple_slider_banner extends Module implements WidgetInterface
     }
 
     /**
-     * Module configuration page. CP01 stub: only the attribution + warning
-     * that the real configuration form arrives in a later checkpoint.
+     * Module configuration page. Renders a panel with the "Manage slides"
+     * link (CP03 — slide CRUD admin tab) plus the upload-dir warning and
+     * the mandatory APLINE attribution. The full global configuration form
+     * (display location / speed / autoplay / navigation / transition)
+     * ships in CP06.
      *
      * @return string
      */
@@ -267,7 +270,14 @@ class apline_simple_slider_banner extends Module implements WidgetInterface
             $output .= $this->displayWarning($this->trans('The upload folder is not writable: %s. Image uploads will fail until you fix its permissions (e.g. chmod 0775).', [$this->getUploadDir()], 'Modules.Aplinesimplesliderbanner.Admin'));
         }
 
-        $output .= $this->displayWarning($this->trans('Module scaffolding only (checkpoint 01). The full configuration form and slide management UI ship in later checkpoints.', [], 'Modules.Aplinesimplesliderbanner.Admin'));
+        $manageUrl = $this->context->link->getAdminLink(self::ADMIN_CONTROLLER);
+
+        $this->context->smarty->assign([
+            'assb_manage_url' => $manageUrl,
+        ]);
+        $output .= $this->display(__FILE__, 'views/templates/admin/configure.tpl');
+
+        $output .= $this->displayWarning($this->trans('The global slider settings form (display location, speed, navigation style, transition) ships in checkpoint 06. For now you can already add, edit and reorder slides via "Manage slides" above.', [], 'Modules.Aplinesimplesliderbanner.Admin'));
 
         return $output . $this->renderLikeBox() . $this->renderAplineFooter();
     }
