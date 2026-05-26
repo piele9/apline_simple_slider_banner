@@ -319,46 +319,210 @@ class apline_simple_slider_banner extends Module implements WidgetInterface
     }
 
     // --------------------------------------------------------------------
-    // Hook stubs — all return '' until CP04/CP05 implement front rendering.
+    // Front-end rendering — registered hooks + render orchestration.
     // --------------------------------------------------------------------
 
+    /**
+     * Register the front stylesheet + slider JS on every front-end page.
+     * The JS file is a stub in CP04 (added in CP05); registration is safe
+     * because the stub is a valid empty JS module.
+     */
     public function hookActionFrontControllerSetMedia()
     {
-        // CSS + JS registration arrives in CP04.
-        return '';
+        try {
+            $this->context->controller->registerStylesheet(
+                'apline-simple-slider-banner',
+                'modules/' . $this->name . '/views/css/front.css'
+            );
+            $this->context->controller->registerJavascript(
+                'apline-simple-slider-banner',
+                'modules/' . $this->name . '/views/js/slider.js',
+                ['position' => 'bottom', 'priority' => 150]
+            );
+        } catch (\Throwable $e) {
+            PrestaShopLogger::addLog('assb: ' . $e->getMessage(), 3);
+        }
     }
 
     public function hookDisplayHome($params)
     {
-        return '';
+        return $this->renderForHook('displayHome', $params);
     }
 
     public function hookDisplayTop($params)
     {
-        return '';
+        return $this->renderForHook('displayTop', $params);
     }
 
     public function hookDisplayFooter($params)
     {
-        return '';
+        return $this->renderForHook('displayFooter', $params);
     }
 
     public function hookDisplayContentWrapperTop($params)
     {
-        return '';
+        return $this->renderForHook('displayContentWrapperTop', $params);
+    }
+
+    /**
+     * Render the slider only on the hook selected in configuration.
+     * Wrapped so any failure yields an empty block instead of a 500
+     * (workspace CLAUDE.md §3.1 crash-safety).
+     *
+     * @param string $hookName
+     * @param array $params
+     *
+     * @return string
+     */
+    private function renderForHook($hookName, $params = [])
+    {
+        try {
+            if (Configuration::get(self::HOOK_KEY) !== $hookName) {
+                return '';
+            }
+
+            $slides = $this->buildSlides();
+            if (!$slides) {
+                return '';
+            }
+
+            $this->smarty->assign([
+                'slides' => $slides,
+                'config' => $this->getRenderConfig(),
+            ]);
+
+            return $this->display(__FILE__, 'views/templates/hook/slider.tpl');
+        } catch (\Throwable $e) {
+            PrestaShopLogger::addLog('assb: ' . $e->getMessage(), 3);
+
+            return '';
+        }
+    }
+
+    /**
+     * Build the list of slides to render. Applies per-slide visibility
+     * flags and automatic fallback when a viewport is enabled but its
+     * image is missing (uses the other image instead, so admins don't
+     * have to upload both for every slide).
+     *
+     * @return array[] each entry: [id, desktop_src, mobile_src, alt_desktop, alt_mobile, url]
+     */
+    private function buildSlides()
+    {
+        $out = [];
+
+        foreach (AplineSimpleSliderBannerSlide::getActiveSlides() as $slide) {
+            $showDesktop = !empty($slide['show_on_desktop']);
+            $showMobile = !empty($slide['show_on_mobile']);
+
+            // Both off → globally hidden (validation prevents this but
+            // double-check at render time so a broken row never crashes us).
+            if (!$showDesktop && !$showMobile) {
+                continue;
+            }
+
+            $imageDesktop = isset($slide['image_desktop']) ? (string) $slide['image_desktop'] : '';
+            $imageMobile = isset($slide['image_mobile']) ? (string) $slide['image_mobile'] : '';
+
+            // Fallback logic: if a viewport is on but its image is missing,
+            // use the other viewport's image as a backup.
+            $desktopSrc = $imageDesktop !== ''
+                ? $imageDesktop
+                : ($showDesktop && $imageMobile !== '' ? $imageMobile : '');
+            $mobileSrc = $imageMobile !== ''
+                ? $imageMobile
+                : ($showMobile && $imageDesktop !== '' ? $imageDesktop : '');
+
+            // Final guard — if both ended up empty (shouldn't happen with
+            // proper admin validation), skip the slide entirely.
+            if ($desktopSrc === '' && $mobileSrc === '') {
+                continue;
+            }
+
+            $altDesktop = isset($slide['alt_desktop']) ? (string) $slide['alt_desktop'] : '';
+            $altMobile = isset($slide['alt_mobile']) ? (string) $slide['alt_mobile'] : '';
+
+            $out[] = [
+                'id' => (int) $slide['id_assb_slide'],
+                'desktop_src' => $showDesktop ? $desktopSrc : '',
+                'mobile_src' => $showMobile ? $mobileSrc : '',
+                'alt_desktop' => $altDesktop !== '' ? $altDesktop : $altMobile,
+                'alt_mobile' => $altMobile !== '' ? $altMobile : $altDesktop,
+                'url' => isset($slide['url']) ? (string) $slide['url'] : '',
+            ];
+        }
+
+        return $out;
+    }
+
+    /**
+     * Build the render-time config dictionary that the Smarty template +
+     * vanilla JS slider read. Whitelist-clamps the values so a tampered
+     * Configuration row can't produce broken markup or runaway autoplay.
+     *
+     * @return array
+     */
+    public function getRenderConfig()
+    {
+        $speed = (int) Configuration::get(self::SPEED_KEY);
+        $speed = max(500, min(30000, $speed ?: 5000));
+
+        $navigation = Configuration::get(self::NAVIGATION_KEY);
+        if (!in_array($navigation, self::NAVIGATION_MODES, true)) {
+            $navigation = 'dots';
+        }
+
+        $transition = Configuration::get(self::TRANSITION_KEY);
+        if (!in_array($transition, self::TRANSITION_MODES, true)) {
+            $transition = 'slide';
+        }
+
+        return [
+            'speed' => $speed,
+            'pause_on_hover' => (bool) Configuration::get(self::PAUSE_ON_HOVER_KEY),
+            'loop' => (bool) Configuration::get(self::LOOP_KEY),
+            'autoplay' => (bool) Configuration::get(self::AUTOPLAY_KEY),
+            'navigation' => $navigation,
+            'transition' => $transition,
+        ];
     }
 
     // --------------------------------------------------------------------
-    // Widget API stubs — CP04 wires the real renderer + variables.
+    // Widget API — explicit embed via {widget name='apline_simple_slider_banner'}
+    // anywhere in the theme. Unlike the hook methods, this one does NOT
+    // gate on ASSB_HOOK (the widget IS the explicit placement).
     // --------------------------------------------------------------------
 
     public function renderWidget($hookName = null, array $configuration = [])
     {
-        return '';
+        try {
+            $slides = $this->buildSlides();
+            if (!$slides) {
+                return '';
+            }
+
+            $this->smarty->assign([
+                'slides' => $slides,
+                'config' => $this->getRenderConfig(),
+            ]);
+
+            return $this->fetch($this->templateFile);
+        } catch (\Throwable $e) {
+            PrestaShopLogger::addLog('assb: ' . $e->getMessage(), 3);
+
+            return '';
+        }
     }
 
     public function getWidgetVariables($hookName = null, array $configuration = [])
     {
-        return ['slides' => []];
+        try {
+            return [
+                'slides' => $this->buildSlides(),
+                'config' => $this->getRenderConfig(),
+            ];
+        } catch (\Throwable $e) {
+            return ['slides' => [], 'config' => $this->getRenderConfig()];
+        }
     }
 }

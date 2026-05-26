@@ -1,0 +1,169 @@
+/*!
+ * APLINE Simple Slider Banner for PrestaShop 9 — front-end styles.
+ *
+ * CP04: basic layout (container, track, slide, dots, arrows) — slider
+ * is rendered statically (only the first slide is visible due to
+ * overflow:hidden on the container). CP05 adds the vanilla JS slider
+ * that drives the actual transitions, autoplay, swipe and dot/arrow
+ * interactions.
+ */
+
+/* ---------- Container ---------- */
+.apline-simple-slider-banner {
+    position: relative;
+    width: 100%;
+    margin: 1rem 0;
+    overflow: hidden;
+}
+
+/* ---------- Track ---------- */
+.apline-simple-slider-banner .assb-track {
+    display: flex;
+    flex-wrap: nowrap;
+    width: 100%;
+    /* CP05 JS animates transform; CP04 leaves slides side-by-side
+       with overflow:hidden on the container revealing only the first. */
+    transition: transform 0.4s ease;
+}
+
+/* ---------- Slide ---------- */
+.apline-simple-slider-banner .assb-slide {
+    flex: 0 0 100%;
+    width: 100%;
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    /* For fade transition (CP05). Slide transition leaves all visible
+       in track, fade stacks them and toggles opacity. */
+    position: relative;
+}
+
+.apline-simple-slider-banner .assb-slide img {
+    width: 100%;
+    height: auto;
+    display: block;
+    /* Mild contrast bump on hover when slide is a link, signals interactivity. */
+    transition: opacity 0.2s ease;
+}
+
+.apline-simple-slider-banner a.assb-slide:hover img {
+    opacity: 0.92;
+}
+
+/* ---------- Fade transition variant (CP05 toggles .assb-slide.active) ---------- */
+.apline-simple-slider-banner[data-assb-transition="fade"] .assb-track {
+    position: relative;
+    display: block;
+    transition: none;
+}
+.apline-simple-slider-banner[data-assb-transition="fade"] .assb-slide {
+    position: absolute;
+    top: 0;
+    left: 0;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+    pointer-events: none;
+}
+.apline-simple-slider-banner[data-assb-transition="fade"] .assb-slide:first-child,
+.apline-simple-slider-banner[data-assb-transition="fade"] .assb-slide.assb-active {
+    opacity: 1;
+    pointer-events: auto;
+    position: relative;
+}
+
+/* ---------- Dots ---------- */
+.apline-simple-slider-banner .assb-dots {
+    position: absolute;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    z-index: 2;
+}
+
+.apline-simple-slider-banner .assb-dots button {
+    width: 12px;
+    height: 12px;
+    padding: 0;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.3);
+    cursor: pointer;
+    transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.apline-simple-slider-banner .assb-dots button:hover {
+    background: rgba(0, 0, 0, 0.6);
+    transform: scale(1.15);
+}
+
+.apline-simple-slider-banner .assb-dots button[aria-selected="true"] {
+    background: #fff;
+}
+
+.apline-simple-slider-banner .assb-dots button:focus-visible {
+    outline: 2px solid #ffd54f;
+    outline-offset: 2px;
+}
+
+/* ---------- Arrows ---------- */
+.apline-simple-slider-banner .assb-arrow {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.45);
+    color: #fff;
+    font-size: 28px;
+    line-height: 1;
+    cursor: pointer;
+    z-index: 2;
+    transition: background 0.2s ease;
+}
+
+.apline-simple-slider-banner .assb-arrow:hover {
+    background: rgba(0, 0, 0, 0.7);
+}
+
+.apline-simple-slider-banner .assb-arrow:focus-visible {
+    outline: 2px solid #ffd54f;
+    outline-offset: 2px;
+}
+
+.apline-simple-slider-banner .assb-arrow-prev {
+    left: 16px;
+}
+
+.apline-simple-slider-banner .assb-arrow-next {
+    right: 16px;
+}
+
+/* ---------- Mobile breakpoint ---------- */
+@media (max-width: 767px) {
+    .apline-simple-slider-banner .assb-arrow {
+        width: 36px;
+        height: 36px;
+        font-size: 22px;
+    }
+    .apline-simple-slider-banner .assb-arrow-prev {
+        left: 8px;
+    }
+    .apline-simple-slider-banner .assb-arrow-next {
+        right: 8px;
+    }
+    .apline-simple-slider-banner .assb-dots {
+        bottom: 10px;
+    }
+    .apline-simple-slider-banner .assb-dots button {
+        width: 10px;
+        height: 10px;
+    }
+}
