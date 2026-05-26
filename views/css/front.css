@@ -64,7 +64,10 @@
     transition: opacity 0.5s ease;
     pointer-events: none;
 }
-.apline-simple-slider-banner[data-assb-transition="fade"] .assb-slide:first-child,
+/* Fallback for users with JS disabled: show the first slide. Once the
+   JS slider runs it adds .assb-js-ready to the root and from then on
+   only the explicitly .assb-active slide is visible (no double-stack). */
+.apline-simple-slider-banner[data-assb-transition="fade"]:not(.assb-js-ready) .assb-slide:first-child,
 .apline-simple-slider-banner[data-assb-transition="fade"] .assb-slide.assb-active {
     opacity: 1;
     pointer-events: auto;
