@@ -7,10 +7,6 @@
  * Each row represents one slide with separate desktop and mobile images,
  * optional click URL, per-viewport visibility flags and position ordering.
  *
- * CP01 stub: minimal $definition so the module installs and the main .php
- * `require_once` resolves. CP02 adds helper methods (getActiveSlides,
- * getNextPosition, add() override) and full field validation rules.
- *
  * @author    APLINE Arkadiusz Pielechowski
  * @copyright APLINE Arkadiusz Pielechowski
  * @license   Custom Attribution License v1.0 - see LICENSE.md
@@ -49,7 +45,20 @@ class AplineSimpleSliderBannerSlide extends ObjectModel
     /**
      * @see ObjectModel::$definition
      *
-     * Minimal definition for CP01 — full field rules + length caps added in CP02.
+     * Field rules:
+     *   - title: required admin label, isGenericName, max 255
+     *   - image_desktop / image_mobile: optional public path to uploaded
+     *     image (stored as relative URL produced by the AdminController
+     *     upload handler), max 255
+     *   - alt_desktop / alt_mobile: optional alt text per image, max 255
+     *   - url: optional click-through URL, isUrl accepts both absolute
+     *     and relative (e.g. "/category/foo"), max 2048
+     *   - show_on_desktop / show_on_mobile / active: bool flags
+     *   - position: 0-based ordering, set automatically by add() if empty
+     *
+     * Hard validation (at-least-one image / alt-required-when-image /
+     * remove_image switches / upload hardening) lives in the
+     * AdminController handleSubmission — CP03 wires that.
      */
     public static $definition = [
         'table' => 'assb_slide',
@@ -70,4 +79,62 @@ class AplineSimpleSliderBannerSlide extends ObjectModel
             'date_upd' => ['type' => self::TYPE_DATE, 'validate' => 'isDate'],
         ],
     ];
+
+    /**
+     * Active slides ordered by position, for front rendering.
+     * Guarded so a missing or corrupted table never breaks the shop front
+     * (workspace CLAUDE.md §3.1 crash-safety) — render code (CP04) treats
+     * an empty array as "render nothing".
+     *
+     * @return array
+     */
+    public static function getActiveSlides()
+    {
+        try {
+            $sql = 'SELECT * FROM `' . _DB_PREFIX_ . 'assb_slide`
+                WHERE `active` = 1
+                ORDER BY `position` ASC, `id_assb_slide` ASC';
+
+            $result = Db::getInstance()->executeS($sql);
+
+            return is_array($result) ? $result : [];
+        } catch (\Throwable $e) {
+            return [];
+        }
+    }
+
+    /**
+     * Next free position value, used to default new rows to the end of
+     * the list. Falls back to 1 if the table is empty or unreachable.
+     *
+     * @return int
+     */
+    public static function getNextPosition()
+    {
+        try {
+            $max = (int) Db::getInstance()->getValue(
+                'SELECT MAX(`position`) FROM `' . _DB_PREFIX_ . 'assb_slide`'
+            );
+
+            return $max + 1;
+        } catch (\Throwable $e) {
+            return 1;
+        }
+    }
+
+    /**
+     * @see ObjectModel::add()
+     *
+     * Auto-assign position at the end of the list when the admin doesn't
+     * specify one explicitly — so new slides always show up after existing
+     * ones and the drag&drop list is never broken by zero-position duplicates.
+     */
+    public function add($auto_date = true, $null_values = false)
+    {
+        if (empty($this->position)) {
+            $this->position = self::getNextPosition();
+        }
+
+        return parent::add($auto_date, $null_values);
+    }
 }
