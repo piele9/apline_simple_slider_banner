@@ -117,6 +117,11 @@ class apline_simple_slider_banner extends Module implements WidgetInterface
             return false;
         }
 
+        // Demo slides are a nice-to-have, not a hard requirement — if seed
+        // generation fails (e.g. GD missing or upload dir read-only) we log
+        // and continue with an empty list, the admin can add their own.
+        $this->installDemoSlides();
+
         return true;
     }
 
@@ -254,11 +259,10 @@ class apline_simple_slider_banner extends Module implements WidgetInterface
     }
 
     /**
-     * Module configuration page. Renders a panel with the "Manage slides"
-     * link (CP03 — slide CRUD admin tab) plus the upload-dir warning and
-     * the mandatory APLINE attribution. The full global configuration form
-     * (display location / speed / autoplay / navigation / transition)
-     * ships in CP06.
+     * Module configuration page. Renders the global slider settings form
+     * (display location, speed, autoplay, pause-on-hover, loop, navigation,
+     * transition), the "Manage slides" link to the hidden admin tab, the
+     * upload-dir warning if applicable, and the mandatory APLINE attribution.
      *
      * @return string
      */
@@ -266,20 +270,323 @@ class apline_simple_slider_banner extends Module implements WidgetInterface
     {
         $output = '';
 
+        if (Tools::isSubmit('submitAssbConfig')) {
+            $output .= $this->saveConfigForm();
+        }
+
         if (!$this->isUploadDirWritable()) {
             $output .= $this->displayWarning($this->trans('The upload folder is not writable: %s. Image uploads will fail until you fix its permissions (e.g. chmod 0775).', [$this->getUploadDir()], 'Modules.Aplinesimplesliderbanner.Admin'));
         }
 
         $manageUrl = $this->context->link->getAdminLink(self::ADMIN_CONTROLLER);
-
-        $this->context->smarty->assign([
-            'assb_manage_url' => $manageUrl,
-        ]);
+        $this->context->smarty->assign(['assb_manage_url' => $manageUrl]);
         $output .= $this->display(__FILE__, 'views/templates/admin/configure.tpl');
 
-        $output .= $this->displayWarning($this->trans('The global slider settings form (display location, speed, navigation style, transition) ships in checkpoint 06. For now you can already add, edit and reorder slides via "Manage slides" above.', [], 'Modules.Aplinesimplesliderbanner.Admin'));
+        return $output . $this->renderConfigForm() . $this->renderLikeBox() . $this->renderAplineFooter();
+    }
 
-        return $output . $this->renderLikeBox() . $this->renderAplineFooter();
+    /**
+     * Validate and persist the global slider settings posted from the
+     * configuration form. Whitelist-validates ASSB_HOOK / ASSB_NAVIGATION /
+     * ASSB_TRANSITION, clamps ASSB_SPEED to [500, 30000] ms, casts the bool
+     * switches and returns a display banner (confirmation or error).
+     *
+     * @return string
+     */
+    private function saveConfigForm()
+    {
+        $hook = (string) Tools::getValue(self::HOOK_KEY);
+        if (!array_key_exists($hook, self::getAvailableHooks())) {
+            return $this->displayError($this->trans('Invalid display location selected.', [], 'Modules.Aplinesimplesliderbanner.Admin'));
+        }
+
+        $navigation = (string) Tools::getValue(self::NAVIGATION_KEY);
+        if (!in_array($navigation, self::NAVIGATION_MODES, true)) {
+            return $this->displayError($this->trans('Invalid navigation mode selected.', [], 'Modules.Aplinesimplesliderbanner.Admin'));
+        }
+
+        $transition = (string) Tools::getValue(self::TRANSITION_KEY);
+        if (!in_array($transition, self::TRANSITION_MODES, true)) {
+            return $this->displayError($this->trans('Invalid transition mode selected.', [], 'Modules.Aplinesimplesliderbanner.Admin'));
+        }
+
+        $speed = (int) Tools::getValue(self::SPEED_KEY);
+        if ($speed < 500 || $speed > 30000) {
+            return $this->displayError($this->trans('Speed must be between 500 and 30000 milliseconds.', [], 'Modules.Aplinesimplesliderbanner.Admin'));
+        }
+
+        Configuration::updateValue(self::HOOK_KEY, $hook);
+        Configuration::updateValue(self::NAVIGATION_KEY, $navigation);
+        Configuration::updateValue(self::TRANSITION_KEY, $transition);
+        Configuration::updateValue(self::SPEED_KEY, $speed);
+        Configuration::updateValue(self::AUTOPLAY_KEY, (int) Tools::getValue(self::AUTOPLAY_KEY) ? 1 : 0);
+        Configuration::updateValue(self::PAUSE_ON_HOVER_KEY, (int) Tools::getValue(self::PAUSE_ON_HOVER_KEY) ? 1 : 0);
+        Configuration::updateValue(self::LOOP_KEY, (int) Tools::getValue(self::LOOP_KEY) ? 1 : 0);
+
+        return $this->displayConfirmation($this->trans('Slider settings saved.', [], 'Modules.Aplinesimplesliderbanner.Admin'));
+    }
+
+    /**
+     * Build the global settings HelperForm: display location, speed,
+     * autoplay/pause/loop switches, navigation mode, transition mode.
+     *
+     * @return string
+     */
+    private function renderConfigForm()
+    {
+        $hookOptions = [];
+        foreach (self::getAvailableHooks() as $hookName => $label) {
+            $hookOptions[] = ['id' => $hookName, 'name' => $label];
+        }
+
+        $navigationOptions = [
+            ['id' => 'dots', 'name' => $this->trans('Dots only', [], 'Modules.Aplinesimplesliderbanner.Admin')],
+            ['id' => 'arrows', 'name' => $this->trans('Arrows only', [], 'Modules.Aplinesimplesliderbanner.Admin')],
+            ['id' => 'both', 'name' => $this->trans('Dots + arrows', [], 'Modules.Aplinesimplesliderbanner.Admin')],
+            ['id' => 'none', 'name' => $this->trans('No navigation (autoplay only)', [], 'Modules.Aplinesimplesliderbanner.Admin')],
+        ];
+
+        $transitionOptions = [
+            ['id' => 'slide', 'name' => $this->trans('Slide (horizontal)', [], 'Modules.Aplinesimplesliderbanner.Admin')],
+            ['id' => 'fade', 'name' => $this->trans('Fade (opacity)', [], 'Modules.Aplinesimplesliderbanner.Admin')],
+        ];
+
+        $boolSwitch = function ($idPrefix) {
+            return [
+                ['id' => $idPrefix . '_on', 'value' => 1, 'label' => $this->trans('Yes', [], 'Admin.Global')],
+                ['id' => $idPrefix . '_off', 'value' => 0, 'label' => $this->trans('No', [], 'Admin.Global')],
+            ];
+        };
+
+        $fields_form = [
+            'form' => [
+                'legend' => [
+                    'title' => $this->trans('Slider settings', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                    'icon' => 'icon-cogs',
+                ],
+                'input' => [
+                    [
+                        'type' => 'select',
+                        'label' => $this->trans('Display location', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                        'name' => self::HOOK_KEY,
+                        'options' => ['query' => $hookOptions, 'id' => 'id', 'name' => 'name'],
+                        'desc' => $this->trans('Where the slider is rendered on the front-end. You can also embed it anywhere with {widget name=\'apline_simple_slider_banner\'}.', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                    ],
+                    [
+                        'type' => 'text',
+                        'label' => $this->trans('Speed (ms)', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                        'name' => self::SPEED_KEY,
+                        'class' => 'fixed-width-sm',
+                        'suffix' => 'ms',
+                        'desc' => $this->trans('Time between slides in milliseconds. 5000 = 5 seconds. Allowed range: 500-30000.', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                    ],
+                    [
+                        'type' => 'switch',
+                        'label' => $this->trans('Autoplay', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                        'name' => self::AUTOPLAY_KEY,
+                        'is_bool' => true,
+                        'values' => $boolSwitch('autoplay'),
+                        'desc' => $this->trans('Auto-advance through slides on a timer.', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                    ],
+                    [
+                        'type' => 'switch',
+                        'label' => $this->trans('Pause on hover', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                        'name' => self::PAUSE_ON_HOVER_KEY,
+                        'is_bool' => true,
+                        'values' => $boolSwitch('pause_on_hover'),
+                        'desc' => $this->trans('Stop auto-advance while the cursor is over the slider.', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                    ],
+                    [
+                        'type' => 'switch',
+                        'label' => $this->trans('Loop forever', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                        'name' => self::LOOP_KEY,
+                        'is_bool' => true,
+                        'values' => $boolSwitch('loop'),
+                        'desc' => $this->trans('After the last slide, wrap back to the first. If off, the slider stops at the last slide (the user can still navigate manually).', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                    ],
+                    [
+                        'type' => 'select',
+                        'label' => $this->trans('Navigation', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                        'name' => self::NAVIGATION_KEY,
+                        'options' => ['query' => $navigationOptions, 'id' => 'id', 'name' => 'name'],
+                        'desc' => $this->trans('Which manual navigation controls are visible.', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                    ],
+                    [
+                        'type' => 'select',
+                        'label' => $this->trans('Transition', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                        'name' => self::TRANSITION_KEY,
+                        'options' => ['query' => $transitionOptions, 'id' => 'id', 'name' => 'name'],
+                        'desc' => $this->trans('Slide horizontally or fade between slides.', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                    ],
+                ],
+                'submit' => ['title' => $this->trans('Save', [], 'Admin.Actions')],
+            ],
+        ];
+
+        $helper = new HelperForm();
+        $helper->module = $this;
+        $helper->name_controller = $this->name;
+        $helper->identifier = $this->identifier;
+        $helper->token = Tools::getAdminTokenLite('AdminModules');
+        $helper->currentIndex = AdminController::$currentIndex . '&configure=' . $this->name;
+        $helper->submit_action = 'submitAssbConfig';
+        $helper->fields_value = [
+            self::HOOK_KEY => Configuration::get(self::HOOK_KEY) ?: 'displayHome',
+            self::SPEED_KEY => (int) (Configuration::get(self::SPEED_KEY) ?: 5000),
+            self::AUTOPLAY_KEY => (int) Configuration::get(self::AUTOPLAY_KEY),
+            self::PAUSE_ON_HOVER_KEY => (int) Configuration::get(self::PAUSE_ON_HOVER_KEY),
+            self::LOOP_KEY => (int) Configuration::get(self::LOOP_KEY),
+            self::NAVIGATION_KEY => Configuration::get(self::NAVIGATION_KEY) ?: 'dots',
+            self::TRANSITION_KEY => Configuration::get(self::TRANSITION_KEY) ?: 'slide',
+        ];
+
+        return $helper->generateForm([$fields_form]);
+    }
+
+    /**
+     * Seed 3 demo slides at install time so the admin has something
+     * working to see on the first front-end visit. Placeholder images
+     * are generated on the fly via PHP GD (PrestaShop's system
+     * requirements list GD as mandatory, so this is safe) into
+     * `views/img/` with the standard `assb_` prefix that
+     * `deleteUploadedFiles()` cleans up on uninstall.
+     *
+     * If GD is missing or the upload directory is not writable, this
+     * silently skips — install still succeeds, the slide list is just
+     * empty and the admin adds their own slides through the
+     * "Manage slides" UI.
+     *
+     * @return bool true if at least one slide was seeded, false on graceful skip
+     */
+    private function installDemoSlides()
+    {
+        try {
+            if (!function_exists('imagecreatetruecolor') || !function_exists('imagejpeg')) {
+                return false;
+            }
+            if (!$this->isUploadDirWritable()) {
+                return false;
+            }
+
+            // Distinct background colours so the admin can visually confirm
+            // all 3 demo slides loaded correctly on a fresh install.
+            $palette = [
+                ['rgb' => [54, 96, 153],  'label' => 'Sample Slide 1'],   // steel blue
+                ['rgb' => [102, 51, 102], 'label' => 'Sample Slide 2'],   // muted purple
+                ['rgb' => [153, 102, 51], 'label' => 'Sample Slide 3'],   // warm brown
+            ];
+
+            $now = date('Y-m-d H:i:s');
+            $uploadDir = $this->getUploadDir();
+            $baseUrl = __PS_BASE_URI__ . 'modules/' . $this->name . '/views/img/';
+            $seeded = 0;
+
+            foreach ($palette as $idx => $slide) {
+                $position = $idx + 1;
+
+                $desktopName = 'assb_seed_' . $position . '_desktop_' . uniqid('', true) . '.jpg';
+                $mobileName  = 'assb_seed_' . $position . '_mobile_'  . uniqid('', true) . '.jpg';
+                $desktopPath = $uploadDir . $desktopName;
+                $mobilePath  = $uploadDir . $mobileName;
+
+                // 1200x675 = 16:9 desktop; 600x450 = 4:3 mobile. Smaller than
+                // the suggested 1920x1080 / 800x600 from the brief so the zip
+                // stays small and the placeholders are clearly "replace me"
+                // rather than presentable hero graphics.
+                $okDesktop = $this->generatePlaceholderImage($desktopPath, 1200, 675, $slide['rgb'], $slide['label']);
+                $okMobile  = $this->generatePlaceholderImage($mobilePath, 600, 450, $slide['rgb'], $slide['label']);
+
+                if (!$okDesktop && !$okMobile) {
+                    continue;
+                }
+
+                $insertOk = Db::getInstance()->insert('assb_slide', [
+                    'title' => pSQL($slide['label']),
+                    'image_desktop' => $okDesktop ? pSQL($baseUrl . $desktopName) : '',
+                    'image_mobile' => $okMobile ? pSQL($baseUrl . $mobileName) : '',
+                    'alt_desktop' => pSQL($slide['label'] . ' (desktop)'),
+                    'alt_mobile' => pSQL($slide['label'] . ' (mobile)'),
+                    'url' => $position < 3 ? pSQL('https://www.prestashop-project.org') : '',
+                    'show_on_desktop' => 1,
+                    'show_on_mobile' => $position < 3 ? 1 : 0, // 3rd slide = desktop-only example
+                    'active' => 1,
+                    'position' => $position,
+                    'date_add' => $now,
+                    'date_upd' => $now,
+                ]);
+
+                if ($insertOk) {
+                    $seeded++;
+                } else {
+                    // Clean up orphaned files from a failed insert.
+                    if ($okDesktop) { @unlink($desktopPath); }
+                    if ($okMobile) { @unlink($mobilePath); }
+                }
+            }
+
+            return $seeded > 0;
+        } catch (\Throwable $e) {
+            PrestaShopLogger::addLog('assb: demo seed skipped — ' . $e->getMessage(), 2);
+
+            return false;
+        }
+    }
+
+    /**
+     * Generate a JPG placeholder image with a solid background colour,
+     * a thin border and a centred label. Used by installDemoSlides()
+     * so the module doesn't have to ship binary sample assets in the
+     * git repo.
+     *
+     * @param string $path absolute target path
+     * @param int $width
+     * @param int $height
+     * @param int[] $rgb three ints 0-255
+     * @param string $label text overlay
+     *
+     * @return bool true on success
+     */
+    private function generatePlaceholderImage($path, $width, $height, $rgb, $label)
+    {
+        try {
+            $im = @imagecreatetruecolor($width, $height);
+            if (!$im) {
+                return false;
+            }
+            $bg = imagecolorallocate($im, $rgb[0], $rgb[1], $rgb[2]);
+            $fg = imagecolorallocate($im, 255, 255, 255);
+            $border = imagecolorallocate($im, max(0, $rgb[0] - 40), max(0, $rgb[1] - 40), max(0, $rgb[2] - 40));
+
+            imagefill($im, 0, 0, $bg);
+            imagerectangle($im, 0, 0, $width - 1, $height - 1, $border);
+            imagerectangle($im, 1, 1, $width - 2, $height - 2, $border);
+
+            // Built-in font 5 is the largest GD font (9x15 px). On 1200x675
+            // it's small but readable enough as a "this is a placeholder" hint.
+            $fontSize = 5;
+            $textW = imagefontwidth($fontSize) * strlen($label);
+            $textH = imagefontheight($fontSize);
+            $x = (int) (($width - $textW) / 2);
+            $y = (int) (($height - $textH) / 2);
+            imagestring($im, $fontSize, $x, $y, $label, $fg);
+
+            // Sub-label hint underneath.
+            $hint = 'Replace via Manage slides';
+            $hintW = imagefontwidth($fontSize) * strlen($hint);
+            $hintX = (int) (($width - $hintW) / 2);
+            imagestring($im, $fontSize, $hintX, $y + $textH + 12, $hint, $fg);
+
+            $ok = @imagejpeg($im, $path, 85);
+            imagedestroy($im);
+
+            if ($ok) {
+                @chmod($path, 0644);
+            }
+
+            return (bool) $ok;
+        } catch (\Throwable $e) {
+            return false;
+        }
     }
 
     /**

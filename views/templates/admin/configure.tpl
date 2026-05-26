@@ -22,4 +22,8 @@
       {l s='Manage slides' d='Modules.Aplinesimplesliderbanner.Admin'}
     </a>
   </p>
+  <p class="text-muted small">
+    <i class="icon-info-circle"></i>
+    {l s='On install, 3 demo placeholder slides were seeded (different background colours) so you can immediately verify the slider works on your home page. Replace them with your own banners in Manage slides.' d='Modules.Aplinesimplesliderbanner.Admin'}
+  </p>
 </div>
