@@ -5,6 +5,71 @@ will be documented in this file. Format based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and adheres
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] – 2026-05-27
+
+Three regressions / feature requests from the v1.0.0 smoke test:
+the display-location picker was friction, the slider needed a
+container-layout option, and the cross-viewport image fallback was
+silently masking configuration mistakes.
+
+### Changed
+- **Slider now auto-renders only on `displayHome`.** The four-option
+  "Display location" selector (and the `ASSB_HOOK` configuration key,
+  the `getAvailableHooks()` helper, and the three optional
+  `hookDisplay*` methods) have been removed. The Widget API
+  (`{widget name='apline_simple_slider_banner'}`) is preserved for
+  explicit theme embedding.
+- **Mobile and desktop are now rendered as two independent sliders**
+  (`.assb-slider--desktop` / `.assb-slider--mobile`) toggled via
+  `@media (max-width: 767px)`. Each slider only includes slides that
+  have both the matching image and the matching `show_on_*` flag.
+  The `<picture>` element is gone — each slider has its own `<img>`
+  per slide. The vanilla JS slider's multi-instance init from v1.0.0
+  picks both sliders up with no changes.
+- **"Show on desktop" / "Show on mobile" switch descriptions**
+  updated to reflect strict per-viewport rendering (no more fallback
+  language).
+
+### Added
+- **`ASSB_CONTAINER` configuration** — pick between edge-to-edge
+  (default, matches v1.0.x behaviour), `.container` (page width) or
+  `.container-fluid` (full browser width with padding). One shared
+  wrapper hugs both viewport sliders.
+- **`ASSB_CUSTOM_CLASS` configuration** — optional CSS class added
+  to both slider roots (alphanumeric + space / dash / underscore,
+  max 64 chars, server-side validated and HTML-escaped in the
+  template).
+- **Admin form rejects slides where a viewport is enabled but the
+  matching image is missing** — previously this combination silently
+  rendered the wrong image as fallback. Now it returns a specific
+  form error: *"Desktop visibility is enabled but no desktop image
+  is set."* (or the symmetric version for mobile).
+- **Admin form QoL** — a viewport's visibility radio is `disabled`
+  until the matching image is uploaded (defensive UI nudge; the
+  server-side validation in `handleSubmission` is the source of
+  truth).
+
+### Removed
+- `ASSB_HOOK` configuration key and its 4-option select from the
+  configuration form.
+- `getAvailableHooks()` helper and the `hookDisplayTop`,
+  `hookDisplayFooter`, `hookDisplayContentWrapperTop` hook methods.
+- `<picture>` element with `<source media>` from the front
+  template — each viewport-specific slider has its own `<img>` per
+  slide.
+- Automatic image fallback between desktop and mobile in
+  `buildSlides()` (the v1.0.x silent rendering of the "other"
+  viewport's image when the matching one was missing).
+
+### Upgrade notes
+- **Fresh install required.** No upgrade script ships with 1.1.0.
+  Uninstall the module from BO, then re-upload the new zip — this
+  drops `ASSB_HOOK` from `ps_configuration` and re-seeds the 3 demo
+  slides. Custom slides created in 1.0.x will be lost on uninstall
+  (export the `ps_assb_slide` table first if you need to preserve
+  them). The slide schema is unchanged between 1.0.x and 1.1.0, so
+  a manual DB dump can be re-imported after re-install if needed.
+
 ## [1.0.0] – 2026-05-26
 
 Initial public release.
