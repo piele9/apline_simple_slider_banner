@@ -21,7 +21,6 @@ use PrestaShop\PrestaShop\Core\Module\WidgetInterface;
 
 class apline_simple_slider_banner extends Module implements WidgetInterface
 {
-    const HOOK_KEY = 'ASSB_HOOK';
     const SPEED_KEY = 'ASSB_SPEED';
     const PAUSE_ON_HOVER_KEY = 'ASSB_PAUSE_ON_HOVER';
     const LOOP_KEY = 'ASSB_LOOP';
@@ -33,21 +32,6 @@ class apline_simple_slider_banner extends Module implements WidgetInterface
 
     /** @var string */
     private $templateFile = 'module:apline_simple_slider_banner/views/templates/hook/slider.tpl';
-
-    /**
-     * Hooks the slider may be displayed on. Key = hook name, value = admin label.
-     *
-     * @return array
-     */
-    public static function getAvailableHooks()
-    {
-        return [
-            'displayHome' => 'Home page',
-            'displayTop' => 'Top of every page',
-            'displayFooter' => 'Footer',
-            'displayContentWrapperTop' => 'Above main content',
-        ];
-    }
 
     /**
      * Whitelist of valid navigation modes (used by global config + JS).
@@ -133,7 +117,6 @@ class apline_simple_slider_banner extends Module implements WidgetInterface
 
         Db::getInstance()->execute('DROP TABLE IF EXISTS `' . _DB_PREFIX_ . 'assb_slide`');
 
-        Configuration::deleteByName(self::HOOK_KEY);
         Configuration::deleteByName(self::SPEED_KEY);
         Configuration::deleteByName(self::PAUSE_ON_HOVER_KEY);
         Configuration::deleteByName(self::LOOP_KEY);
@@ -178,8 +161,7 @@ class apline_simple_slider_banner extends Module implements WidgetInterface
      */
     private function installConfiguration()
     {
-        return Configuration::updateValue(self::HOOK_KEY, 'displayHome')
-            && Configuration::updateValue(self::SPEED_KEY, 5000)
+        return Configuration::updateValue(self::SPEED_KEY, 5000)
             && Configuration::updateValue(self::PAUSE_ON_HOVER_KEY, 1)
             && Configuration::updateValue(self::LOOP_KEY, 1)
             && Configuration::updateValue(self::AUTOPLAY_KEY, 1)
@@ -193,9 +175,7 @@ class apline_simple_slider_banner extends Module implements WidgetInterface
     private function installHooks()
     {
         $ok = $this->registerHook('actionFrontControllerSetMedia');
-        foreach (array_keys(self::getAvailableHooks()) as $hook) {
-            $ok = $ok && $this->registerHook($hook);
-        }
+        $ok = $ok && $this->registerHook('displayHome');
 
         return $ok;
     }
@@ -287,7 +267,7 @@ class apline_simple_slider_banner extends Module implements WidgetInterface
 
     /**
      * Validate and persist the global slider settings posted from the
-     * configuration form. Whitelist-validates ASSB_HOOK / ASSB_NAVIGATION /
+     * configuration form. Whitelist-validates ASSB_NAVIGATION and
      * ASSB_TRANSITION, clamps ASSB_SPEED to [500, 30000] ms, casts the bool
      * switches and returns a display banner (confirmation or error).
      *
@@ -295,11 +275,6 @@ class apline_simple_slider_banner extends Module implements WidgetInterface
      */
     private function saveConfigForm()
     {
-        $hook = (string) Tools::getValue(self::HOOK_KEY);
-        if (!array_key_exists($hook, self::getAvailableHooks())) {
-            return $this->displayError($this->trans('Invalid display location selected.', [], 'Modules.Aplinesimplesliderbanner.Admin'));
-        }
-
         $navigation = (string) Tools::getValue(self::NAVIGATION_KEY);
         if (!in_array($navigation, self::NAVIGATION_MODES, true)) {
             return $this->displayError($this->trans('Invalid navigation mode selected.', [], 'Modules.Aplinesimplesliderbanner.Admin'));
@@ -315,7 +290,6 @@ class apline_simple_slider_banner extends Module implements WidgetInterface
             return $this->displayError($this->trans('Speed must be between 500 and 30000 milliseconds.', [], 'Modules.Aplinesimplesliderbanner.Admin'));
         }
 
-        Configuration::updateValue(self::HOOK_KEY, $hook);
         Configuration::updateValue(self::NAVIGATION_KEY, $navigation);
         Configuration::updateValue(self::TRANSITION_KEY, $transition);
         Configuration::updateValue(self::SPEED_KEY, $speed);
@@ -334,11 +308,6 @@ class apline_simple_slider_banner extends Module implements WidgetInterface
      */
     private function renderConfigForm()
     {
-        $hookOptions = [];
-        foreach (self::getAvailableHooks() as $hookName => $label) {
-            $hookOptions[] = ['id' => $hookName, 'name' => $label];
-        }
-
         $navigationOptions = [
             ['id' => 'dots', 'name' => $this->trans('Dots only', [], 'Modules.Aplinesimplesliderbanner.Admin')],
             ['id' => 'arrows', 'name' => $this->trans('Arrows only', [], 'Modules.Aplinesimplesliderbanner.Admin')],
@@ -365,13 +334,6 @@ class apline_simple_slider_banner extends Module implements WidgetInterface
                     'icon' => 'icon-cogs',
                 ],
                 'input' => [
-                    [
-                        'type' => 'select',
-                        'label' => $this->trans('Display location', [], 'Modules.Aplinesimplesliderbanner.Admin'),
-                        'name' => self::HOOK_KEY,
-                        'options' => ['query' => $hookOptions, 'id' => 'id', 'name' => 'name'],
-                        'desc' => $this->trans('Where the slider is rendered on the front-end. You can also embed it anywhere with {widget name=\'apline_simple_slider_banner\'}.', [], 'Modules.Aplinesimplesliderbanner.Admin'),
-                    ],
                     [
                         'type' => 'text',
                         'label' => $this->trans('Speed (ms)', [], 'Modules.Aplinesimplesliderbanner.Admin'),
@@ -431,7 +393,6 @@ class apline_simple_slider_banner extends Module implements WidgetInterface
         $helper->currentIndex = AdminController::$currentIndex . '&configure=' . $this->name;
         $helper->submit_action = 'submitAssbConfig';
         $helper->fields_value = [
-            self::HOOK_KEY => Configuration::get(self::HOOK_KEY) ?: 'displayHome',
             self::SPEED_KEY => (int) (Configuration::get(self::SPEED_KEY) ?: 5000),
             self::AUTOPLAY_KEY => (int) Configuration::get(self::AUTOPLAY_KEY),
             self::PAUSE_ON_HOVER_KEY => (int) Configuration::get(self::PAUSE_ON_HOVER_KEY),
@@ -653,41 +614,20 @@ class apline_simple_slider_banner extends Module implements WidgetInterface
 
     public function hookDisplayHome($params)
     {
-        return $this->renderForHook('displayHome', $params);
-    }
-
-    public function hookDisplayTop($params)
-    {
-        return $this->renderForHook('displayTop', $params);
-    }
-
-    public function hookDisplayFooter($params)
-    {
-        return $this->renderForHook('displayFooter', $params);
-    }
-
-    public function hookDisplayContentWrapperTop($params)
-    {
-        return $this->renderForHook('displayContentWrapperTop', $params);
+        return $this->renderSlider($params);
     }
 
     /**
-     * Render the slider only on the hook selected in configuration.
-     * Wrapped so any failure yields an empty block instead of a 500
-     * (workspace CLAUDE.md §3.1 crash-safety).
+     * Render the slider. Wrapped so any failure yields an empty block
+     * instead of a 500 (workspace CLAUDE.md §3.1 crash-safety).
      *
-     * @param string $hookName
      * @param array $params
      *
      * @return string
      */
-    private function renderForHook($hookName, $params = [])
+    private function renderSlider($params = [])
     {
         try {
-            if (Configuration::get(self::HOOK_KEY) !== $hookName) {
-                return '';
-            }
-
             $slides = $this->buildSlides();
             if (!$slides) {
                 return '';
@@ -796,8 +736,7 @@ class apline_simple_slider_banner extends Module implements WidgetInterface
 
     // --------------------------------------------------------------------
     // Widget API — explicit embed via {widget name='apline_simple_slider_banner'}
-    // anywhere in the theme. Unlike the hook methods, this one does NOT
-    // gate on ASSB_HOOK (the widget IS the explicit placement).
+    // anywhere in the theme.
     // --------------------------------------------------------------------
 
     public function renderWidget($hookName = null, array $configuration = [])
