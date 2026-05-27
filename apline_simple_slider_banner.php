@@ -27,6 +27,8 @@ class apline_simple_slider_banner extends Module implements WidgetInterface
     const AUTOPLAY_KEY = 'ASSB_AUTOPLAY';
     const NAVIGATION_KEY = 'ASSB_NAVIGATION';
     const TRANSITION_KEY = 'ASSB_TRANSITION';
+    const CONTAINER_KEY = 'ASSB_CONTAINER';
+    const CUSTOM_CLASS_KEY = 'ASSB_CUSTOM_CLASS';
 
     const ADMIN_CONTROLLER = 'AdminAplineSimpleSliderBannerSlide';
 
@@ -46,6 +48,22 @@ class apline_simple_slider_banner extends Module implements WidgetInterface
      * @var string[]
      */
     const TRANSITION_MODES = ['slide', 'fade'];
+
+    /**
+     * Whitelist of valid container layouts (used by global config + template).
+     * - none: no outer wrapper (edge-to-edge, default)
+     * - container: wraps the slider in <div class="container"> (page width)
+     * - container-fluid: wraps in <div class="container-fluid"> (full width)
+     *
+     * @var string[]
+     */
+    const CONTAINER_MODES = ['none', 'container', 'container-fluid'];
+
+    /**
+     * Maximum length of the user-defined custom CSS class (added to the
+     * slider root element).
+     */
+    const CUSTOM_CLASS_MAX_LEN = 64;
 
     public function __construct()
     {
@@ -123,6 +141,8 @@ class apline_simple_slider_banner extends Module implements WidgetInterface
         Configuration::deleteByName(self::AUTOPLAY_KEY);
         Configuration::deleteByName(self::NAVIGATION_KEY);
         Configuration::deleteByName(self::TRANSITION_KEY);
+        Configuration::deleteByName(self::CONTAINER_KEY);
+        Configuration::deleteByName(self::CUSTOM_CLASS_KEY);
 
         return parent::uninstall();
     }
@@ -166,7 +186,9 @@ class apline_simple_slider_banner extends Module implements WidgetInterface
             && Configuration::updateValue(self::LOOP_KEY, 1)
             && Configuration::updateValue(self::AUTOPLAY_KEY, 1)
             && Configuration::updateValue(self::NAVIGATION_KEY, 'dots')
-            && Configuration::updateValue(self::TRANSITION_KEY, 'slide');
+            && Configuration::updateValue(self::TRANSITION_KEY, 'slide')
+            && Configuration::updateValue(self::CONTAINER_KEY, 'none')
+            && Configuration::updateValue(self::CUSTOM_CLASS_KEY, '');
     }
 
     /**
@@ -290,12 +312,31 @@ class apline_simple_slider_banner extends Module implements WidgetInterface
             return $this->displayError($this->trans('Speed must be between 500 and 30000 milliseconds.', [], 'Modules.Aplinesimplesliderbanner.Admin'));
         }
 
+        $container = (string) Tools::getValue(self::CONTAINER_KEY);
+        if (!in_array($container, self::CONTAINER_MODES, true)) {
+            return $this->displayError($this->trans('Invalid container layout selected.', [], 'Modules.Aplinesimplesliderbanner.Admin'));
+        }
+
+        // Custom CSS class: validated regex (letters, digits, space, dash,
+        // underscore — same charset as a CSS identifier list). Reject on
+        // length / charset mismatch instead of silently stripping —
+        // workspace CLAUDE.md §3.4 (validation rejects, never truncates).
+        $customClass = trim((string) Tools::getValue(self::CUSTOM_CLASS_KEY));
+        if (mb_strlen($customClass) > self::CUSTOM_CLASS_MAX_LEN) {
+            return $this->displayError($this->trans('Custom CSS class must be %d characters or less.', [self::CUSTOM_CLASS_MAX_LEN], 'Modules.Aplinesimplesliderbanner.Admin'));
+        }
+        if ($customClass !== '' && !preg_match('/^[a-zA-Z0-9 _-]+$/', $customClass)) {
+            return $this->displayError($this->trans('Custom CSS class may only contain letters, digits, spaces, dashes and underscores.', [], 'Modules.Aplinesimplesliderbanner.Admin'));
+        }
+
         Configuration::updateValue(self::NAVIGATION_KEY, $navigation);
         Configuration::updateValue(self::TRANSITION_KEY, $transition);
         Configuration::updateValue(self::SPEED_KEY, $speed);
         Configuration::updateValue(self::AUTOPLAY_KEY, (int) Tools::getValue(self::AUTOPLAY_KEY) ? 1 : 0);
         Configuration::updateValue(self::PAUSE_ON_HOVER_KEY, (int) Tools::getValue(self::PAUSE_ON_HOVER_KEY) ? 1 : 0);
         Configuration::updateValue(self::LOOP_KEY, (int) Tools::getValue(self::LOOP_KEY) ? 1 : 0);
+        Configuration::updateValue(self::CONTAINER_KEY, $container);
+        Configuration::updateValue(self::CUSTOM_CLASS_KEY, $customClass);
 
         return $this->displayConfirmation($this->trans('Slider settings saved.', [], 'Modules.Aplinesimplesliderbanner.Admin'));
     }
@@ -320,6 +361,12 @@ class apline_simple_slider_banner extends Module implements WidgetInterface
             ['id' => 'fade', 'name' => $this->trans('Fade (opacity)', [], 'Modules.Aplinesimplesliderbanner.Admin')],
         ];
 
+        $containerOptions = [
+            ['id' => 'none', 'name' => $this->trans('Edge to edge (no wrapper, default)', [], 'Modules.Aplinesimplesliderbanner.Admin')],
+            ['id' => 'container', 'name' => $this->trans('Constrained to page width (.container)', [], 'Modules.Aplinesimplesliderbanner.Admin')],
+            ['id' => 'container-fluid', 'name' => $this->trans('Full browser width with padding (.container-fluid)', [], 'Modules.Aplinesimplesliderbanner.Admin')],
+        ];
+
         $boolSwitch = function ($idPrefix) {
             return [
                 ['id' => $idPrefix . '_on', 'value' => 1, 'label' => $this->trans('Yes', [], 'Admin.Global')],
@@ -341,6 +388,20 @@ class apline_simple_slider_banner extends Module implements WidgetInterface
                         'class' => 'fixed-width-sm',
                         'suffix' => 'ms',
                         'desc' => $this->trans('Time between slides in milliseconds. 5000 = 5 seconds. Allowed range: 500-30000.', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                    ],
+                    [
+                        'type' => 'select',
+                        'label' => $this->trans('Container layout', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                        'name' => self::CONTAINER_KEY,
+                        'options' => ['query' => $containerOptions, 'id' => 'id', 'name' => 'name'],
+                        'desc' => $this->trans('How the slider is wrapped on the page. "Edge to edge" lets the slider span the full browser width (typical for hero banners). "Constrained" puts it inside the standard .container width. "Full width" uses .container-fluid (full width with padding).', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                    ],
+                    [
+                        'type' => 'text',
+                        'label' => $this->trans('Custom CSS class', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                        'name' => self::CUSTOM_CLASS_KEY,
+                        'class' => 'fixed-width-xxl',
+                        'desc' => $this->trans('Optional. Added to the slider root element so you can target it with your own CSS. Letters, digits, spaces, dashes and underscores only (max 64 chars).', [], 'Modules.Aplinesimplesliderbanner.Admin'),
                     ],
                     [
                         'type' => 'switch',
@@ -394,6 +455,8 @@ class apline_simple_slider_banner extends Module implements WidgetInterface
         $helper->submit_action = 'submitAssbConfig';
         $helper->fields_value = [
             self::SPEED_KEY => (int) (Configuration::get(self::SPEED_KEY) ?: 5000),
+            self::CONTAINER_KEY => Configuration::get(self::CONTAINER_KEY) ?: 'none',
+            self::CUSTOM_CLASS_KEY => Configuration::get(self::CUSTOM_CLASS_KEY) ?: '',
             self::AUTOPLAY_KEY => (int) Configuration::get(self::AUTOPLAY_KEY),
             self::PAUSE_ON_HOVER_KEY => (int) Configuration::get(self::PAUSE_ON_HOVER_KEY),
             self::LOOP_KEY => (int) Configuration::get(self::LOOP_KEY),
@@ -724,6 +787,11 @@ class apline_simple_slider_banner extends Module implements WidgetInterface
             $transition = 'slide';
         }
 
+        $container = Configuration::get(self::CONTAINER_KEY);
+        if (!in_array($container, self::CONTAINER_MODES, true)) {
+            $container = 'none';
+        }
+
         return [
             'speed' => $speed,
             'pause_on_hover' => (bool) Configuration::get(self::PAUSE_ON_HOVER_KEY),
@@ -731,6 +799,8 @@ class apline_simple_slider_banner extends Module implements WidgetInterface
             'autoplay' => (bool) Configuration::get(self::AUTOPLAY_KEY),
             'navigation' => $navigation,
             'transition' => $transition,
+            'container' => $container,
+            'custom_class' => trim((string) Configuration::get(self::CUSTOM_CLASS_KEY)),
         ];
     }
 

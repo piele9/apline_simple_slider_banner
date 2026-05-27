@@ -20,7 +20,9 @@
  * @author APLINE Arkadiusz Pielechowski
  *}
 {if $slides|@count}
-<div class="apline-simple-slider-banner assb-slider"
+{if $config.container == 'container'}<div class="container">{/if}
+{if $config.container == 'container-fluid'}<div class="container-fluid">{/if}
+<div class="apline-simple-slider-banner assb-slider{if $config.custom_class} {$config.custom_class|escape:'html':'UTF-8'}{/if}"
      data-assb-speed="{$config.speed|intval}"
      data-assb-autoplay="{if $config.autoplay}1{else}0{/if}"
      data-assb-loop="{if $config.loop}1{else}0{/if}"
@@ -81,4 +83,5 @@
   {/if}
 
 </div>
+{if $config.container != 'none'}</div>{/if}
 {/if}
