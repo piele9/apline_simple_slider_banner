@@ -5,8 +5,31 @@
  * is rendered statically (only the first slide is visible due to
  * overflow:hidden on the container). CP05 adds the vanilla JS slider
  * that drives the actual transitions, autoplay, swipe and dot/arrow
- * interactions.
+ * interactions. CP09 (v1.1.0) splits desktop and mobile into two
+ * independent sliders toggled by the @media rule below.
  */
+
+/* ---------- Desktop / mobile slider switch ----------
+   The module renders two independent sliders (`.assb-slider--desktop`
+   and `.assb-slider--mobile`) and toggles their visibility via media
+   query at the 767px breakpoint. Per-slide images and visibility flags
+   are strict — a slide is included only on the viewports it explicitly
+   targets (server-side filtering in buildSlides($viewport)). No
+   cross-viewport fallback. */
+.apline-simple-slider-banner.assb-slider--desktop {
+    display: block;
+}
+.apline-simple-slider-banner.assb-slider--mobile {
+    display: none;
+}
+@media (max-width: 767px) {
+    .apline-simple-slider-banner.assb-slider--desktop {
+        display: none;
+    }
+    .apline-simple-slider-banner.assb-slider--mobile {
+        display: block;
+    }
+}
 
 /* ---------- Container ---------- */
 .apline-simple-slider-banner {

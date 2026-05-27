@@ -302,7 +302,7 @@ class AdminAplineSimpleSliderBannerSlideController extends ModuleAdminController
                     'label' => $this->trans('Show on desktop', [], 'Modules.Aplinesimplesliderbanner.Admin'),
                     'name' => 'show_on_desktop',
                     'is_bool' => true,
-                    'desc' => $this->trans('If enabled and the desktop image is missing, the mobile image is used as a fallback.', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                    'desc' => $this->trans('Whether this slide appears in the desktop slider (viewports >= 768px). Requires a desktop image — the slide is rejected on save if this is on and no desktop image is uploaded. There is no fallback to the mobile image.', [], 'Modules.Aplinesimplesliderbanner.Admin'),
                     'values' => [
                         ['id' => 'show_desktop_on', 'value' => 1, 'label' => $this->trans('Yes', [], 'Admin.Global')],
                         ['id' => 'show_desktop_off', 'value' => 0, 'label' => $this->trans('No', [], 'Admin.Global')],
@@ -313,7 +313,7 @@ class AdminAplineSimpleSliderBannerSlideController extends ModuleAdminController
                     'label' => $this->trans('Show on mobile', [], 'Modules.Aplinesimplesliderbanner.Admin'),
                     'name' => 'show_on_mobile',
                     'is_bool' => true,
-                    'desc' => $this->trans('If enabled and the mobile image is missing, the desktop image is used as a fallback.', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                    'desc' => $this->trans('Whether this slide appears in the mobile slider (viewports <= 767px). Requires a mobile image — the slide is rejected on save if this is on and no mobile image is uploaded. There is no fallback to the desktop image.', [], 'Modules.Aplinesimplesliderbanner.Admin'),
                     'values' => [
                         ['id' => 'show_mobile_on', 'value' => 1, 'label' => $this->trans('Yes', [], 'Admin.Global')],
                         ['id' => 'show_mobile_off', 'value' => 0, 'label' => $this->trans('No', [], 'Admin.Global')],
@@ -358,7 +358,81 @@ class AdminAplineSimpleSliderBannerSlideController extends ModuleAdminController
             ];
         }
 
-        return parent::renderForm();
+        return parent::renderForm() . $this->renderViewportToggleScript();
+    }
+
+    /**
+     * Inline JS appended to the slide edit form (CP09 QoL).
+     *
+     * Disables the "Show on desktop" / "Show on mobile" radio pair until
+     * the matching image is present (either already saved on this slide,
+     * or just selected via the file input). Prevents the admin from
+     * submitting a known-bad combination — although handleSubmission()
+     * is the source of truth and rejects the same case on the server.
+     *
+     * If the admin un-checks an image (no fresh file selected and no
+     * existing image), the visibility radio flips to "No" so the form
+     * stays in a coherent state at submit time.
+     *
+     * The script is defensive: if the form markup ever changes and the
+     * radios / file inputs are not found, the script no-ops and the
+     * server-side validation still catches mismatches.
+     *
+     * @return string
+     */
+    private function renderViewportToggleScript()
+    {
+        $hasDesktopImage = false;
+        $hasMobileImage = false;
+        if (($obj = $this->loadObject(true)) && Validate::isLoadedObject($obj)) {
+            $hasDesktopImage = !empty($obj->image_desktop);
+            $hasMobileImage = !empty($obj->image_mobile);
+        }
+
+        $desktopInitial = $hasDesktopImage ? 'true' : 'false';
+        $mobileInitial = $hasMobileImage ? 'true' : 'false';
+
+        return '
+<script>
+(function () {
+    function toggleViewport(viewport, hasImage) {
+        var radios = document.querySelectorAll(
+            \'input[name="show_on_\' + viewport + \'"]\'
+        );
+        if (!radios.length) { return; }
+        for (var i = 0; i < radios.length; i++) {
+            radios[i].disabled = !hasImage;
+        }
+        if (!hasImage) {
+            var onRadio = document.querySelector(
+                \'input[name="show_on_\' + viewport + \'"][value="1"]\'
+            );
+            var offRadio = document.querySelector(
+                \'input[name="show_on_\' + viewport + \'"][value="0"]\'
+            );
+            if (onRadio && onRadio.checked && offRadio) {
+                offRadio.checked = true;
+            }
+        }
+    }
+    function wireField(viewport, initiallyHasImage) {
+        toggleViewport(viewport, initiallyHasImage);
+        var fileInput = document.querySelector(
+            \'input[type="file"][name="image_\' + viewport + \'_file"]\'
+        );
+        if (fileInput) {
+            fileInput.addEventListener("change", function () {
+                var picked = fileInput.files && fileInput.files.length > 0;
+                toggleViewport(viewport, picked || initiallyHasImage);
+            });
+        }
+    }
+    document.addEventListener("DOMContentLoaded", function () {
+        wireField("desktop", ' . $desktopInitial . ');
+        wireField("mobile", ' . $mobileInitial . ');
+    });
+})();
+</script>';
     }
 
     // ------------------------------------------------------------------
@@ -468,6 +542,19 @@ class AdminAplineSimpleSliderBannerSlideController extends ModuleAdminController
         // ---------- Validation 2: at-least-one image after the smoke clears ----------
         if (empty($effectiveDesktop) && empty($effectiveMobile)) {
             $this->errors[] = $this->trans('The slide must have at least one image (desktop or mobile).', [], 'Modules.Aplinesimplesliderbanner.Admin');
+        }
+
+        // ---------- Validation v1.1.0: visibility flag requires matching image ----------
+        // CP09 (front 3) renders desktop and mobile as two independent sliders
+        // with no cross-viewport fallback. A slide with show_on_desktop=1 but
+        // no desktop image would silently disappear from the desktop slider.
+        // Reject the submission instead so the admin explicitly chooses:
+        // upload the image, or disable the visibility flag.
+        if ($showOnDesktop && empty($effectiveDesktop)) {
+            $this->errors[] = $this->trans('Desktop visibility is enabled but no desktop image is set. Upload a desktop image or disable "Show on desktop".', [], 'Modules.Aplinesimplesliderbanner.Admin');
+        }
+        if ($showOnMobile && empty($effectiveMobile)) {
+            $this->errors[] = $this->trans('Mobile visibility is enabled but no mobile image is set. Upload a mobile image or disable "Show on mobile".', [], 'Modules.Aplinesimplesliderbanner.Admin');
         }
 
         // ---------- Validation 3: alt required when image is set; auto-fill from filename ----------

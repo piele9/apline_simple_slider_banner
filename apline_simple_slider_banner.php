@@ -691,13 +691,15 @@ class apline_simple_slider_banner extends Module implements WidgetInterface
     private function renderSlider($params = [])
     {
         try {
-            $slides = $this->buildSlides();
-            if (!$slides) {
+            $slidesDesktop = $this->buildSlides('desktop');
+            $slidesMobile = $this->buildSlides('mobile');
+            if (!$slidesDesktop && !$slidesMobile) {
                 return '';
             }
 
             $this->smarty->assign([
-                'slides' => $slides,
+                'slides_desktop' => $slidesDesktop,
+                'slides_mobile' => $slidesMobile,
                 'config' => $this->getRenderConfig(),
             ]);
 
@@ -710,54 +712,48 @@ class apline_simple_slider_banner extends Module implements WidgetInterface
     }
 
     /**
-     * Build the list of slides to render. Applies per-slide visibility
-     * flags and automatic fallback when a viewport is enabled but its
-     * image is missing (uses the other image instead, so admins don't
-     * have to upload both for every slide).
+     * Build the list of slides to render for ONE viewport. Strict
+     * per-viewport filtering — a slide enters the desktop list only if
+     * `show_on_desktop=1` AND `image_desktop` is non-empty (symmetric
+     * for mobile). No cross-viewport fallback in v1.1.0+: admins must
+     * upload the matching image for each viewport they enable; the
+     * AdminController validation rejects mismatches at save time.
      *
-     * @return array[] each entry: [id, desktop_src, mobile_src, alt_desktop, alt_mobile, url]
+     * The front template uses this twice (once per viewport) and renders
+     * two independent sliders toggled by a CSS media query.
+     *
+     * @param string $viewport one of 'desktop' or 'mobile'
+     *
+     * @return array[] each entry: [id, src, alt, url]
      */
-    private function buildSlides()
+    private function buildSlides($viewport)
     {
+        $isDesktop = ($viewport === 'desktop');
+        $imageKey = $isDesktop ? 'image_desktop' : 'image_mobile';
+        $altKey = $isDesktop ? 'alt_desktop' : 'alt_mobile';
+        $showKey = $isDesktop ? 'show_on_desktop' : 'show_on_mobile';
+
         $out = [];
 
         foreach (AplineSimpleSliderBannerSlide::getActiveSlides() as $slide) {
-            $showDesktop = !empty($slide['show_on_desktop']);
-            $showMobile = !empty($slide['show_on_mobile']);
-
-            // Both off → globally hidden (validation prevents this but
-            // double-check at render time so a broken row never crashes us).
-            if (!$showDesktop && !$showMobile) {
+            if (empty($slide[$showKey])) {
                 continue;
             }
 
-            $imageDesktop = isset($slide['image_desktop']) ? (string) $slide['image_desktop'] : '';
-            $imageMobile = isset($slide['image_mobile']) ? (string) $slide['image_mobile'] : '';
-
-            // Fallback logic: if a viewport is on but its image is missing,
-            // use the other viewport's image as a backup.
-            $desktopSrc = $imageDesktop !== ''
-                ? $imageDesktop
-                : ($showDesktop && $imageMobile !== '' ? $imageMobile : '');
-            $mobileSrc = $imageMobile !== ''
-                ? $imageMobile
-                : ($showMobile && $imageDesktop !== '' ? $imageDesktop : '');
-
-            // Final guard — if both ended up empty (shouldn't happen with
-            // proper admin validation), skip the slide entirely.
-            if ($desktopSrc === '' && $mobileSrc === '') {
+            $src = isset($slide[$imageKey]) ? (string) $slide[$imageKey] : '';
+            if ($src === '') {
+                // Defensive: AdminController validation should already block
+                // this combination, but a stale row from v1.0.x would still
+                // get filtered out cleanly here.
                 continue;
             }
 
-            $altDesktop = isset($slide['alt_desktop']) ? (string) $slide['alt_desktop'] : '';
-            $altMobile = isset($slide['alt_mobile']) ? (string) $slide['alt_mobile'] : '';
+            $alt = isset($slide[$altKey]) ? (string) $slide[$altKey] : '';
 
             $out[] = [
                 'id' => (int) $slide['id_assb_slide'],
-                'desktop_src' => $showDesktop ? $desktopSrc : '',
-                'mobile_src' => $showMobile ? $mobileSrc : '',
-                'alt_desktop' => $altDesktop !== '' ? $altDesktop : $altMobile,
-                'alt_mobile' => $altMobile !== '' ? $altMobile : $altDesktop,
+                'src' => $src,
+                'alt' => $alt,
                 'url' => isset($slide['url']) ? (string) $slide['url'] : '',
             ];
         }
@@ -812,13 +808,15 @@ class apline_simple_slider_banner extends Module implements WidgetInterface
     public function renderWidget($hookName = null, array $configuration = [])
     {
         try {
-            $slides = $this->buildSlides();
-            if (!$slides) {
+            $slidesDesktop = $this->buildSlides('desktop');
+            $slidesMobile = $this->buildSlides('mobile');
+            if (!$slidesDesktop && !$slidesMobile) {
                 return '';
             }
 
             $this->smarty->assign([
-                'slides' => $slides,
+                'slides_desktop' => $slidesDesktop,
+                'slides_mobile' => $slidesMobile,
                 'config' => $this->getRenderConfig(),
             ]);
 
@@ -834,11 +832,16 @@ class apline_simple_slider_banner extends Module implements WidgetInterface
     {
         try {
             return [
-                'slides' => $this->buildSlides(),
+                'slides_desktop' => $this->buildSlides('desktop'),
+                'slides_mobile' => $this->buildSlides('mobile'),
                 'config' => $this->getRenderConfig(),
             ];
         } catch (\Throwable $e) {
-            return ['slides' => [], 'config' => $this->getRenderConfig()];
+            return [
+                'slides_desktop' => [],
+                'slides_mobile' => [],
+                'config' => $this->getRenderConfig(),
+            ];
         }
     }
 }
