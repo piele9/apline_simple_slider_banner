@@ -2,12 +2,14 @@
 
 A lightweight, distributable PrestaShop **9.0.x** module that displays
 a configurable **image slider / carousel** with **separate desktop
-and mobile images per slide**. Native `<picture>` element handles the
-viewport switch with zero JavaScript cost. Optional click-through URL,
-per-image alt text, drag-and-drop ordering and on/off toggles per
-viewport. Configurable navigation (dots / arrows / both / none) and
-transitions (slide / fade). Vanilla JS, no Swiper, no Glide, no jQuery
-on the front-end.
+and mobile images per slide**. Two independent sliders are rendered and
+toggled by a CSS media query at the 767px breakpoint — the right banner
+for each viewport, with no JavaScript scaling. Optional click-through
+URL, per-image alt text, drag-and-drop ordering and on/off toggles per
+viewport. Configurable navigation (dots / arrows / both / none),
+transitions (slide / fade), **fixed slider dimensions** and a
+**per-viewport Bootstrap container**. Vanilla JS, no Swiper, no Glide,
+no jQuery on the front-end.
 
 > Created by **[APLINE](https://apline.pl)** — custom PrestaShop
 > development, performance optimization and integrations.
@@ -18,24 +20,41 @@ on the front-end.
 
 - ✅ **Separate desktop and mobile images** per slide (no more
   stretched 16:9 banners on 4:3 phones)
-- ✅ **Native `<picture>` element** with `<source media>` — the
-  browser picks the right image, no JS scaling
+- ✅ **Two independent sliders** toggled by a CSS `@media` query at
+  767px — each viewport fetches only its own image, no `<picture>`
+  guesswork and no JS scaling
+- ✅ **Fixed slider size (optional, per viewport)** — keep the default
+  natural height, or pin every slide to set dimensions so the slider
+  height never jumps between images of different sizes. Pick a
+  **suggested preset** or type your own **width × height** inside safe
+  bounds; a proportion guard stops you accidentally turning a landscape
+  banner into a portrait one. Images fill the box with **Cover** (crop,
+  no distortion — default), **Fill** (stretch) or **Contain**
+  (letterbox). A fixed slider scales down proportionally on narrow
+  screens.
+- ✅ **Per-viewport Bootstrap container** — if your theme uses
+  Bootstrap, wrap the slider in `.container` or `.container-fluid`,
+  chosen **separately for desktop and mobile**. An explicit
+  "My theme uses Bootstrap" switch gates it (no unreliable
+  auto-detection); off by default, leaving the slider edge to edge.
 - ✅ **WebP support** in the upload pipeline (JPG / PNG / WEBP all
   accepted)
 - ✅ Per-slide **click-through URL** (empty = non-clickable slide,
   rendered as `<div>` not `<a>`)
-- ✅ Independent **show-on-desktop / show-on-mobile** toggles with
-  automatic fallback if one viewport's image is missing
+- ✅ Independent **show-on-desktop / show-on-mobile** toggles — strict
+  per viewport: a slide appears on a viewport only when both its flag
+  and its matching image are set (no silent fallback)
 - ✅ Per-image **alt text** for accessibility and SEO, auto-filled
   from the file name if left empty
-- ✅ Configurable **display location**: home page, top of every page,
-  footer, above main content — or anywhere via
-  `{widget name='apline_simple_slider_banner'}`
+- ✅ **Auto-renders on the home page** (`displayHome`) — or anywhere
+  via `{widget name='apline_simple_slider_banner'}`
 - ✅ Configurable **navigation**: dots only, arrows only, both, or
   none (autoplay-only)
 - ✅ Configurable **transition**: horizontal slide or opacity fade
 - ✅ **Autoplay** with configurable speed (500-30000 ms), **pause on
   hover** (optional), **loop forever** or stop after the last slide
+- ✅ Optional **custom CSS class** added to both slider roots for your
+  own styling hooks
 - ✅ **Touch swipe** on mobile (50 px threshold, passive listeners)
 - ✅ **Keyboard accessibility** — Tab to dots/arrows, Enter/Space to
   activate, `aria-selected` toggle on dot buttons
@@ -46,6 +65,8 @@ on the front-end.
   - URL format check via `Validate::isUrl` (accepts both absolute
     `https://...` and relative `/category/foo`)
   - at-least-one-image, at-least-one-viewport, alt-required-when-image
+  - fixed dimensions rejected when out of range or wrong orientation
+    (never silently clamped)
   - image upload hardened: **JPG / PNG / WEBP only**, real MIME
     inspection (not just the extension), **4 MB** size cap → blocks
     disguised executables
@@ -72,6 +93,9 @@ on the front-end.
   on-the-fly placeholder seed generation at install time — if GD is
   missing the install still succeeds, just without demo slides)
 - Writable `views/img/` directory (for slide image uploads)
+- The **per-viewport Bootstrap container** option only does something
+  if your theme loads Bootstrap (the PrestaShop Classic theme does).
+  Everything else works on any theme.
 
 > Always test on a staging copy of your shop before installing on
 > production. The module is crash-safe by design (a render error
@@ -111,7 +135,7 @@ Uninstall is **destructive and idempotent**:
   deleted
 - all uploaded images in `views/img/assb_*` are removed from disk
   (including the seeded demo placeholders)
-- the 7 `ASSB_*` configuration entries are removed
+- all `ASSB_*` configuration entries are removed
 - the hidden admin tab (`AdminAplineSimpleSliderBannerSlide`) is
   removed
 - module hook registrations are unregistered
@@ -122,63 +146,89 @@ uninstalling**. There is no built-in export.
 
 ## ⚙️ Usage
 
-### 1. Configure global settings
+The configuration page is grouped into three panels.
 
-*Modules* → configure **APLINE Simple Slider Banner for PrestaShop 9**.
-Set:
+### 1. Slider behaviour
 
-- **Display location** — where the slider renders (home page is the
-  default)
 - **Speed** — milliseconds between auto-advance (5000 = 5 sec)
 - **Autoplay**, **Pause on hover**, **Loop forever** — three
   independent switches
 - **Navigation** — dots / arrows / both / none
 - **Transition** — slide (horizontal) or fade (opacity)
 
-### 2. Manage slides
+### 2. Slide size
+
+- **Sizing mode** — *Natural height* (default; the slider follows each
+  image's own proportions) or *Fixed size* (every slide shares the
+  dimensions you set, so the height never jumps).
+- **Image fit** (fixed mode) — *Cover* (fills and crops, never
+  distorts — the safe banner default), *Fill* (stretches exactly to
+  the box, may distort) or *Contain* (whole image, may show empty
+  bars).
+- **Desktop / Mobile size** — pick a suggested **preset** or type your
+  own **width** and **height** in pixels, separately per viewport.
+  Values outside the allowed range, or proportions that would flip a
+  landscape banner into a portrait one, are rejected with a clear
+  error. A fixed slider keeps its width / height ratio and scales down
+  proportionally on screens narrower than the chosen width.
+
+### 3. Page layout
+
+- **My theme uses Bootstrap** — turn on only if your theme loads
+  Bootstrap (the Classic theme does). When on, the two selects below
+  wrap the slider in a `.container` / `.container-fluid` **per
+  viewport**. When off, the slider stays edge to edge and the
+  container options have no effect.
+- **Desktop container** / **Mobile container** — *Edge to edge*,
+  *Constrained to page width (.container)* or *Full browser width
+  (.container-fluid)*, chosen independently for each viewport.
+- **Custom CSS class** — optional class added to both slider roots so
+  you can target the slider with your own CSS.
+
+### 4. Manage slides
 
 *Configure → Manage slides* → *Add new slide*. For each slide:
 
 - **Title** (internal, not shown on the front-end — just helps you
   tell slides apart in the admin list)
-- **Desktop image** + **Alt text (desktop)** — suggested ratio 16:9
-  (e.g. 1920×1080)
-- **Mobile image** + **Alt text (mobile)** — suggested ratio 4:3
-  (e.g. 800×600) or 1:1 (e.g. 800×800)
+- **Desktop image** + **Alt text (desktop)**
+- **Mobile image** + **Alt text (mobile)**
 - **Link URL** (optional) — clicking the slide leads here; leave
   empty for a non-clickable slide. Both absolute (`https://...`) and
   relative (`/category/foo`) URLs work.
-- **Show on desktop** / **Show on mobile** — independent switches.
-  If a viewport is on but its image is missing, the other viewport's
-  image is used as a fallback.
+- **Show on desktop** / **Show on mobile** — independent switches. A
+  viewport only shows the slide when its switch is on **and** the
+  matching image is uploaded (no cross-viewport fallback).
 - **Active** — global on/off
+
+> **Tip:** match each image's proportions to your chosen slider size.
+> In *Cover* mode (the default) mismatched images are cropped to fill,
+> never distorted — but you keep the most of your artwork when the
+> source ratio is close to the slider ratio.
 
 Reorder slides by drag & drop. The order in the admin list is the
 order they appear on the front-end.
 
-### 3. Embed elsewhere (optional)
+### 5. Embed elsewhere (optional)
 
 ```smarty
 {widget name='apline_simple_slider_banner'}
 ```
 
 Drop this anywhere in your theme to render the slider, regardless of
-the configured display location.
+the home-page hook.
 
 ## 🖼️ Screenshots
 
-**Module configuration page** — global settings:
+Install the module on a PrestaShop 9 staging shop to see it in action:
 
-![Module configuration page](docs/config.png)
+- **Configuration page** — the three-panel settings form (slider
+  behaviour, slide size, page layout)
+- **Slides management** — drag-and-drop ordering with a dual desktop /
+  mobile image preview per slide
+- **Front-end** — the slider on the home page
 
-**Slides management** — drag & drop, dual image preview, viewport
-chip:
-
-![Slides management list](docs/slides.png)
-
-**Front-end** — slider on the product page:
-
-![Slider on the front-end](docs/front.png)
+Annotated screenshots will be added in a future update.
 
 ## 🛠️ Troubleshooting
 
@@ -197,17 +247,34 @@ must contain that folder at its root with **forward-slash** paths.
 
 ### Slider doesn't show up on the front-end
 
-- *Modules → APLINE Simple Slider Banner → Configure* — make sure
-  the **Display location** dropdown is set to where you expect
-  (default: *Home page*).
-- Make sure at least one slide has the **Active** switch on and at
-  least one of *Show on desktop* / *Show on mobile* on.
-- Some themes strip the `displayHome` hook on non-home pages. Try
-  *Top of every page* instead, or embed the slider manually with
+- The slider auto-renders on the **home page** (`displayHome`). For
+  other pages, embed it manually with
   `{widget name='apline_simple_slider_banner'}` in your theme
   template.
+- Make sure at least one slide has the **Active** switch on and at
+  least one of *Show on desktop* / *Show on mobile* on **with the
+  matching image uploaded**.
 - Clear the PrestaShop cache (*Advanced Parameters → Performance →
   Clear cache*).
+
+### The container option does nothing
+
+The **Desktop / Mobile container** selects emit Bootstrap's
+`.container` / `.container-fluid` classes. They only have a visible
+effect if **My theme uses Bootstrap** is on **and** your theme
+actually loads Bootstrap. On a non-Bootstrap theme, leave the switch
+off and use *Edge to edge* (or your own Custom CSS class).
+
+### The slider height looks wrong / images are cropped
+
+- In **Fixed size** mode, images fill the box per the **Image fit**
+  setting. *Cover* crops to fill (no distortion); switch to *Contain*
+  to see the whole image (with empty bars), or *Fill* to stretch.
+- Set a **Desktop** and **Mobile** size whose proportions match your
+  artwork to minimise cropping.
+- In **Natural height** mode the slider follows each image, so slides
+  of different sizes will change the slider height — switch to
+  *Fixed size* to keep it constant.
 
 ### Image upload fails / silent rejection
 

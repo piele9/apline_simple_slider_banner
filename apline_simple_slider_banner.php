@@ -27,8 +27,22 @@ class apline_simple_slider_banner extends Module implements WidgetInterface
     const AUTOPLAY_KEY = 'ASSB_AUTOPLAY';
     const NAVIGATION_KEY = 'ASSB_NAVIGATION';
     const TRANSITION_KEY = 'ASSB_TRANSITION';
-    const CONTAINER_KEY = 'ASSB_CONTAINER';
     const CUSTOM_CLASS_KEY = 'ASSB_CUSTOM_CLASS';
+
+    // Task 1 (v1.2.0) — fixed slider dimensions, per viewport.
+    const SIZING_MODE_KEY = 'ASSB_SIZING_MODE';
+    const FILL_MODE_KEY = 'ASSB_FILL_MODE';
+    const FIXED_W_DESKTOP_KEY = 'ASSB_FIXED_W_DESKTOP';
+    const FIXED_H_DESKTOP_KEY = 'ASSB_FIXED_H_DESKTOP';
+    const FIXED_W_MOBILE_KEY = 'ASSB_FIXED_W_MOBILE';
+    const FIXED_H_MOBILE_KEY = 'ASSB_FIXED_H_MOBILE';
+
+    // Task 2 (v1.2.0) — Bootstrap container wrapper, per viewport.
+    // Replaces the single ASSB_CONTAINER key from v1.1.0 (pre-release
+    // restructure — no shops carry saved settings yet, see CLAUDE.md §6).
+    const BOOTSTRAP_KEY = 'ASSB_BOOTSTRAP';
+    const CONTAINER_DESKTOP_KEY = 'ASSB_CONTAINER_DESKTOP';
+    const CONTAINER_MOBILE_KEY = 'ASSB_CONTAINER_MOBILE';
 
     const ADMIN_CONTROLLER = 'AdminAplineSimpleSliderBannerSlide';
 
@@ -65,11 +79,48 @@ class apline_simple_slider_banner extends Module implements WidgetInterface
      */
     const CUSTOM_CLASS_MAX_LEN = 64;
 
+    /** Whitelist of slide sizing modes (global config + template + CSS). */
+    const SIZING_MODES = ['natural', 'fixed'];
+
+    /** Whitelist of object-fit modes used when sizing mode is "fixed". */
+    const FILL_MODES = ['cover', 'fill', 'contain'];
+
+    /**
+     * Fixed-dimension bounds (px) and aspect-ratio (W/H) guards, per
+     * viewport. Out-of-range or wrong-orientation values are REJECTED
+     * with a form error (workspace CLAUDE.md §3.4) — never silently
+     * clamped on save. getRenderConfig() applies a defensive clamp at
+     * render time only, so a tampered Configuration row can't produce
+     * broken markup.
+     *
+     * The ratio guard is what stops an admin turning a landscape banner
+     * into a portrait one (or an absurd ultra-wide strip).
+     */
+    const FIXED_W_MIN_DESKTOP = 320;
+    const FIXED_W_MAX_DESKTOP = 3840;
+    const FIXED_H_MIN_DESKTOP = 120;
+    const FIXED_H_MAX_DESKTOP = 2160;
+    const FIXED_RATIO_MIN_DESKTOP = 1.0;
+    const FIXED_RATIO_MAX_DESKTOP = 6.0;
+
+    const FIXED_W_MIN_MOBILE = 320;
+    const FIXED_W_MAX_MOBILE = 2160;
+    const FIXED_H_MIN_MOBILE = 160;
+    const FIXED_H_MAX_MOBILE = 2400;
+    const FIXED_RATIO_MIN_MOBILE = 0.5;
+    const FIXED_RATIO_MAX_MOBILE = 3.0;
+
+    /** Default fixed dimensions (install defaults + form fallbacks). */
+    const FIXED_W_DESKTOP_DEFAULT = 1920;
+    const FIXED_H_DESKTOP_DEFAULT = 600;
+    const FIXED_W_MOBILE_DEFAULT = 768;
+    const FIXED_H_MOBILE_DEFAULT = 480;
+
     public function __construct()
     {
         $this->name = 'apline_simple_slider_banner';
         $this->tab = 'front_office_features';
-        $this->version = '1.1.0';
+        $this->version = '1.2.0';
         $this->author = 'APLINE Arkadiusz Pielechowski';
         $this->need_instance = false;
         $this->bootstrap = true;
@@ -141,8 +192,19 @@ class apline_simple_slider_banner extends Module implements WidgetInterface
         Configuration::deleteByName(self::AUTOPLAY_KEY);
         Configuration::deleteByName(self::NAVIGATION_KEY);
         Configuration::deleteByName(self::TRANSITION_KEY);
-        Configuration::deleteByName(self::CONTAINER_KEY);
         Configuration::deleteByName(self::CUSTOM_CLASS_KEY);
+        Configuration::deleteByName(self::SIZING_MODE_KEY);
+        Configuration::deleteByName(self::FILL_MODE_KEY);
+        Configuration::deleteByName(self::FIXED_W_DESKTOP_KEY);
+        Configuration::deleteByName(self::FIXED_H_DESKTOP_KEY);
+        Configuration::deleteByName(self::FIXED_W_MOBILE_KEY);
+        Configuration::deleteByName(self::FIXED_H_MOBILE_KEY);
+        Configuration::deleteByName(self::BOOTSTRAP_KEY);
+        Configuration::deleteByName(self::CONTAINER_DESKTOP_KEY);
+        Configuration::deleteByName(self::CONTAINER_MOBILE_KEY);
+        // Legacy single-container key (v1.1.0, replaced in v1.2.0) — clean
+        // up if a dev/test install still carries it.
+        Configuration::deleteByName('ASSB_CONTAINER');
 
         return parent::uninstall();
     }
@@ -187,8 +249,18 @@ class apline_simple_slider_banner extends Module implements WidgetInterface
             && Configuration::updateValue(self::AUTOPLAY_KEY, 1)
             && Configuration::updateValue(self::NAVIGATION_KEY, 'dots')
             && Configuration::updateValue(self::TRANSITION_KEY, 'slide')
-            && Configuration::updateValue(self::CONTAINER_KEY, 'none')
-            && Configuration::updateValue(self::CUSTOM_CLASS_KEY, '');
+            && Configuration::updateValue(self::CUSTOM_CLASS_KEY, '')
+            // Task 1 — fixed dimensions (default: natural, i.e. v1.1.0 behaviour).
+            && Configuration::updateValue(self::SIZING_MODE_KEY, 'natural')
+            && Configuration::updateValue(self::FILL_MODE_KEY, 'cover')
+            && Configuration::updateValue(self::FIXED_W_DESKTOP_KEY, self::FIXED_W_DESKTOP_DEFAULT)
+            && Configuration::updateValue(self::FIXED_H_DESKTOP_KEY, self::FIXED_H_DESKTOP_DEFAULT)
+            && Configuration::updateValue(self::FIXED_W_MOBILE_KEY, self::FIXED_W_MOBILE_DEFAULT)
+            && Configuration::updateValue(self::FIXED_H_MOBILE_KEY, self::FIXED_H_MOBILE_DEFAULT)
+            // Task 2 — Bootstrap container (default: off, i.e. edge-to-edge).
+            && Configuration::updateValue(self::BOOTSTRAP_KEY, 0)
+            && Configuration::updateValue(self::CONTAINER_DESKTOP_KEY, 'none')
+            && Configuration::updateValue(self::CONTAINER_MOBILE_KEY, 'none');
     }
 
     /**
@@ -312,9 +384,59 @@ class apline_simple_slider_banner extends Module implements WidgetInterface
             return $this->displayError($this->trans('Speed must be between 500 and 30000 milliseconds.', [], 'Modules.Aplinesimplesliderbanner.Admin'));
         }
 
-        $container = (string) Tools::getValue(self::CONTAINER_KEY);
-        if (!in_array($container, self::CONTAINER_MODES, true)) {
-            return $this->displayError($this->trans('Invalid container layout selected.', [], 'Modules.Aplinesimplesliderbanner.Admin'));
+        // --- Task 2: Bootstrap container wrapper (per viewport) ---
+        $bootstrap = (int) Tools::getValue(self::BOOTSTRAP_KEY) ? 1 : 0;
+
+        $containerDesktop = (string) Tools::getValue(self::CONTAINER_DESKTOP_KEY);
+        if (!in_array($containerDesktop, self::CONTAINER_MODES, true)) {
+            return $this->displayError($this->trans('Invalid desktop container layout selected.', [], 'Modules.Aplinesimplesliderbanner.Admin'));
+        }
+
+        $containerMobile = (string) Tools::getValue(self::CONTAINER_MOBILE_KEY);
+        if (!in_array($containerMobile, self::CONTAINER_MODES, true)) {
+            return $this->displayError($this->trans('Invalid mobile container layout selected.', [], 'Modules.Aplinesimplesliderbanner.Admin'));
+        }
+
+        // --- Task 1: fixed slider dimensions (per viewport) ---
+        $sizingMode = (string) Tools::getValue(self::SIZING_MODE_KEY);
+        if (!in_array($sizingMode, self::SIZING_MODES, true)) {
+            return $this->displayError($this->trans('Invalid slide sizing mode selected.', [], 'Modules.Aplinesimplesliderbanner.Admin'));
+        }
+
+        $fillMode = (string) Tools::getValue(self::FILL_MODE_KEY);
+        if (!in_array($fillMode, self::FILL_MODES, true)) {
+            return $this->displayError($this->trans('Invalid image fit mode selected.', [], 'Modules.Aplinesimplesliderbanner.Admin'));
+        }
+
+        // Dimensions are always validated (the fields are always posted), so
+        // the stored values stay sane and a later switch to "fixed" always
+        // has usable numbers. Reject out-of-range / wrong-orientation values
+        // instead of silently clamping (workspace CLAUDE.md §3.4).
+        $wDesktop = (int) Tools::getValue(self::FIXED_W_DESKTOP_KEY);
+        $hDesktop = (int) Tools::getValue(self::FIXED_H_DESKTOP_KEY);
+        $wMobile = (int) Tools::getValue(self::FIXED_W_MOBILE_KEY);
+        $hMobile = (int) Tools::getValue(self::FIXED_H_MOBILE_KEY);
+
+        $dimError = $this->validateFixedDimensions(
+            $wDesktop, $hDesktop,
+            self::FIXED_W_MIN_DESKTOP, self::FIXED_W_MAX_DESKTOP,
+            self::FIXED_H_MIN_DESKTOP, self::FIXED_H_MAX_DESKTOP,
+            self::FIXED_RATIO_MIN_DESKTOP, self::FIXED_RATIO_MAX_DESKTOP,
+            $this->trans('Desktop', [], 'Modules.Aplinesimplesliderbanner.Admin')
+        );
+        if ($dimError !== '') {
+            return $this->displayError($dimError);
+        }
+
+        $dimError = $this->validateFixedDimensions(
+            $wMobile, $hMobile,
+            self::FIXED_W_MIN_MOBILE, self::FIXED_W_MAX_MOBILE,
+            self::FIXED_H_MIN_MOBILE, self::FIXED_H_MAX_MOBILE,
+            self::FIXED_RATIO_MIN_MOBILE, self::FIXED_RATIO_MAX_MOBILE,
+            $this->trans('Mobile', [], 'Modules.Aplinesimplesliderbanner.Admin')
+        );
+        if ($dimError !== '') {
+            return $this->displayError($dimError);
         }
 
         // Custom CSS class: validated regex (letters, digits, space, dash,
@@ -335,15 +457,90 @@ class apline_simple_slider_banner extends Module implements WidgetInterface
         Configuration::updateValue(self::AUTOPLAY_KEY, (int) Tools::getValue(self::AUTOPLAY_KEY) ? 1 : 0);
         Configuration::updateValue(self::PAUSE_ON_HOVER_KEY, (int) Tools::getValue(self::PAUSE_ON_HOVER_KEY) ? 1 : 0);
         Configuration::updateValue(self::LOOP_KEY, (int) Tools::getValue(self::LOOP_KEY) ? 1 : 0);
-        Configuration::updateValue(self::CONTAINER_KEY, $container);
         Configuration::updateValue(self::CUSTOM_CLASS_KEY, $customClass);
+        // Task 1 — fixed dimensions.
+        Configuration::updateValue(self::SIZING_MODE_KEY, $sizingMode);
+        Configuration::updateValue(self::FILL_MODE_KEY, $fillMode);
+        Configuration::updateValue(self::FIXED_W_DESKTOP_KEY, $wDesktop);
+        Configuration::updateValue(self::FIXED_H_DESKTOP_KEY, $hDesktop);
+        Configuration::updateValue(self::FIXED_W_MOBILE_KEY, $wMobile);
+        Configuration::updateValue(self::FIXED_H_MOBILE_KEY, $hMobile);
+        // Task 2 — Bootstrap container (per viewport).
+        Configuration::updateValue(self::BOOTSTRAP_KEY, $bootstrap);
+        Configuration::updateValue(self::CONTAINER_DESKTOP_KEY, $containerDesktop);
+        Configuration::updateValue(self::CONTAINER_MOBILE_KEY, $containerMobile);
 
         return $this->displayConfirmation($this->trans('Slider settings saved.', [], 'Modules.Aplinesimplesliderbanner.Admin'));
     }
 
     /**
-     * Build the global settings HelperForm: display location, speed,
-     * autoplay/pause/loop switches, navigation mode, transition mode.
+     * Validate one viewport's fixed dimensions: width range, height range
+     * and aspect-ratio (W/H) guard. Returns a ready-to-display error
+     * string, or '' when the dimensions are valid. Rejects rather than
+     * clamps (workspace CLAUDE.md §3.4). The ratio guard prevents an admin
+     * accidentally turning a landscape banner into a portrait one.
+     *
+     * @param int $w
+     * @param int $h
+     * @param int $wMin
+     * @param int $wMax
+     * @param int $hMin
+     * @param int $hMax
+     * @param float $ratioMin minimum allowed W/H
+     * @param float $ratioMax maximum allowed W/H
+     * @param string $label already-translated viewport label (Desktop/Mobile)
+     *
+     * @return string error message, or '' if valid
+     */
+    private function validateFixedDimensions($w, $h, $wMin, $wMax, $hMin, $hMax, $ratioMin, $ratioMax, $label)
+    {
+        if ($w < $wMin || $w > $wMax) {
+            return $this->trans('%1$s width must be between %2$d and %3$d pixels.', [$label, $wMin, $wMax], 'Modules.Aplinesimplesliderbanner.Admin');
+        }
+        if ($h < $hMin || $h > $hMax) {
+            return $this->trans('%1$s height must be between %2$d and %3$d pixels.', [$label, $hMin, $hMax], 'Modules.Aplinesimplesliderbanner.Admin');
+        }
+
+        // $h >= $hMin > 0 is guaranteed by the height check above.
+        $ratio = $w / $h;
+        if ($ratio < $ratioMin || $ratio > $ratioMax) {
+            return $this->trans(
+                '%1$s proportions are out of range: width / height must be between %2$s and %3$s. This guard stops a landscape banner being turned into a portrait one (or an absurd ultra-wide strip).',
+                [$label, (string) $ratioMin, (string) $ratioMax],
+                'Modules.Aplinesimplesliderbanner.Admin'
+            );
+        }
+
+        return '';
+    }
+
+    /**
+     * Defensive render-time clamp for a stored fixed dimension. Unlike the
+     * save-time validation (which rejects), this never blocks rendering —
+     * it just keeps a tampered/empty Configuration row from producing
+     * broken markup. A non-positive value falls back to $default.
+     *
+     * @param int $value
+     * @param int $min
+     * @param int $max
+     * @param int $default
+     *
+     * @return int
+     */
+    private function clampDimension($value, $min, $max, $default)
+    {
+        if ($value <= 0) {
+            return $default;
+        }
+
+        return max($min, min($max, $value));
+    }
+
+    /**
+     * Build the global settings HelperForm, grouped into three fieldsets:
+     * slider behaviour, slide size (fixed dimensions), and page layout
+     * (Bootstrap container + custom class). A small inline script wires the
+     * size presets and shows/hides the fixed-size fields.
      *
      * @return string
      */
@@ -361,10 +558,41 @@ class apline_simple_slider_banner extends Module implements WidgetInterface
             ['id' => 'fade', 'name' => $this->trans('Fade (opacity)', [], 'Modules.Aplinesimplesliderbanner.Admin')],
         ];
 
+        // Container options reused for both the desktop and the mobile select.
         $containerOptions = [
-            ['id' => 'none', 'name' => $this->trans('Edge to edge (no wrapper, default)', [], 'Modules.Aplinesimplesliderbanner.Admin')],
+            ['id' => 'none', 'name' => $this->trans('Edge to edge (no wrapper)', [], 'Modules.Aplinesimplesliderbanner.Admin')],
             ['id' => 'container', 'name' => $this->trans('Constrained to page width (.container)', [], 'Modules.Aplinesimplesliderbanner.Admin')],
             ['id' => 'container-fluid', 'name' => $this->trans('Full browser width with padding (.container-fluid)', [], 'Modules.Aplinesimplesliderbanner.Admin')],
+        ];
+
+        $sizingOptions = [
+            ['id' => 'natural', 'name' => $this->trans('Natural height — follow each image (default)', [], 'Modules.Aplinesimplesliderbanner.Admin')],
+            ['id' => 'fixed', 'name' => $this->trans('Fixed size — all slides share set dimensions', [], 'Modules.Aplinesimplesliderbanner.Admin')],
+        ];
+
+        $fillOptions = [
+            ['id' => 'cover', 'name' => $this->trans('Cover — fill the box, crop overflow (no distortion)', [], 'Modules.Aplinesimplesliderbanner.Admin')],
+            ['id' => 'fill', 'name' => $this->trans('Fill — stretch exactly to the box (may distort)', [], 'Modules.Aplinesimplesliderbanner.Admin')],
+            ['id' => 'contain', 'name' => $this->trans('Contain — whole image, may show empty bars', [], 'Modules.Aplinesimplesliderbanner.Admin')],
+        ];
+
+        // Size presets are pure UI helpers — they prefill the width/height
+        // fields client-side (see renderConfigFormScript) and are NOT saved
+        // as Configuration. The stored truth is always the px width/height.
+        $customLabel = $this->trans('Custom — use the width/height below', [], 'Modules.Aplinesimplesliderbanner.Admin');
+        $presetDesktopOptions = [
+            ['id' => '1920x600', 'name' => '1920 × 600 (16:5)'],
+            ['id' => '1600x500', 'name' => '1600 × 500 (16:5)'],
+            ['id' => '1200x400', 'name' => '1200 × 400 (3:1)'],
+            ['id' => '1000x400', 'name' => '1000 × 400 (5:2)'],
+            ['id' => 'custom', 'name' => $customLabel],
+        ];
+        $presetMobileOptions = [
+            ['id' => '768x480', 'name' => '768 × 480 (8:5)'],
+            ['id' => '640x480', 'name' => '640 × 480 (4:3)'],
+            ['id' => '600x600', 'name' => '600 × 600 (1:1)'],
+            ['id' => '480x600', 'name' => '480 × 600 (4:5)'],
+            ['id' => 'custom', 'name' => $customLabel],
         ];
 
         $boolSwitch = function ($idPrefix) {
@@ -374,10 +602,11 @@ class apline_simple_slider_banner extends Module implements WidgetInterface
             ];
         };
 
-        $fields_form = [
+        // Fieldset 1 — slider behaviour (timing + navigation).
+        $behaviourForm = [
             'form' => [
                 'legend' => [
-                    'title' => $this->trans('Slider settings', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                    'title' => $this->trans('Slider behaviour', [], 'Modules.Aplinesimplesliderbanner.Admin'),
                     'icon' => 'icon-cogs',
                 ],
                 'input' => [
@@ -388,20 +617,6 @@ class apline_simple_slider_banner extends Module implements WidgetInterface
                         'class' => 'fixed-width-sm',
                         'suffix' => 'ms',
                         'desc' => $this->trans('Time between slides in milliseconds. 5000 = 5 seconds. Allowed range: 500-30000.', [], 'Modules.Aplinesimplesliderbanner.Admin'),
-                    ],
-                    [
-                        'type' => 'select',
-                        'label' => $this->trans('Container layout', [], 'Modules.Aplinesimplesliderbanner.Admin'),
-                        'name' => self::CONTAINER_KEY,
-                        'options' => ['query' => $containerOptions, 'id' => 'id', 'name' => 'name'],
-                        'desc' => $this->trans('How the slider is wrapped on the page. "Edge to edge" lets the slider span the full browser width (typical for hero banners). "Constrained" puts it inside the standard .container width. "Full width" uses .container-fluid (full width with padding).', [], 'Modules.Aplinesimplesliderbanner.Admin'),
-                    ],
-                    [
-                        'type' => 'text',
-                        'label' => $this->trans('Custom CSS class', [], 'Modules.Aplinesimplesliderbanner.Admin'),
-                        'name' => self::CUSTOM_CLASS_KEY,
-                        'class' => 'fixed-width-xxl',
-                        'desc' => $this->trans('Optional. Added to the slider root element so you can target it with your own CSS. Letters, digits, spaces, dashes and underscores only (max 64 chars).', [], 'Modules.Aplinesimplesliderbanner.Admin'),
                     ],
                     [
                         'type' => 'switch',
@@ -442,6 +657,119 @@ class apline_simple_slider_banner extends Module implements WidgetInterface
                         'desc' => $this->trans('Slide horizontally or fade between slides.', [], 'Modules.Aplinesimplesliderbanner.Admin'),
                     ],
                 ],
+            ],
+        ];
+
+        // Fieldset 2 — slide size (fixed dimensions, per viewport).
+        $sizeForm = [
+            'form' => [
+                'legend' => [
+                    'title' => $this->trans('Slide size', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                    'icon' => 'icon-picture',
+                ],
+                'input' => [
+                    [
+                        'type' => 'select',
+                        'label' => $this->trans('Sizing mode', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                        'name' => self::SIZING_MODE_KEY,
+                        'options' => ['query' => $sizingOptions, 'id' => 'id', 'name' => 'name'],
+                        'desc' => $this->trans('"Natural" keeps each image at its own aspect ratio — the slider height follows the image (default). "Fixed" makes every slide share the dimensions below, so the height never jumps between slides of different sizes. On narrow screens a fixed slider scales down proportionally (it keeps the width / height ratio).', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                    ],
+                    [
+                        'type' => 'select',
+                        'label' => $this->trans('Image fit (fixed mode)', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                        'name' => self::FILL_MODE_KEY,
+                        'options' => ['query' => $fillOptions, 'id' => 'id', 'name' => 'name'],
+                        'desc' => $this->trans('How each image fills the fixed box when its proportions differ. "Cover" is the safe banner default — fills and crops, never distorts.', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                    ],
+                    [
+                        'type' => 'select',
+                        'label' => $this->trans('Desktop size preset', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                        'name' => 'assb_preset_desktop',
+                        'options' => ['query' => $presetDesktopOptions, 'id' => 'id', 'name' => 'name'],
+                        'desc' => $this->trans('Pick a suggested desktop size to fill the width/height below, or "Custom" to type your own.', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                    ],
+                    [
+                        'type' => 'text',
+                        'label' => $this->trans('Desktop width', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                        'name' => self::FIXED_W_DESKTOP_KEY,
+                        'class' => 'fixed-width-sm',
+                        'suffix' => 'px',
+                        'desc' => $this->trans('Allowed range: %1$d-%2$d px.', [self::FIXED_W_MIN_DESKTOP, self::FIXED_W_MAX_DESKTOP], 'Modules.Aplinesimplesliderbanner.Admin'),
+                    ],
+                    [
+                        'type' => 'text',
+                        'label' => $this->trans('Desktop height', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                        'name' => self::FIXED_H_DESKTOP_KEY,
+                        'class' => 'fixed-width-sm',
+                        'suffix' => 'px',
+                        'desc' => $this->trans('Allowed range: %1$d-%2$d px. Width / height must stay between %3$s and %4$s (landscape).', [self::FIXED_H_MIN_DESKTOP, self::FIXED_H_MAX_DESKTOP, (string) self::FIXED_RATIO_MIN_DESKTOP, (string) self::FIXED_RATIO_MAX_DESKTOP], 'Modules.Aplinesimplesliderbanner.Admin'),
+                    ],
+                    [
+                        'type' => 'select',
+                        'label' => $this->trans('Mobile size preset', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                        'name' => 'assb_preset_mobile',
+                        'options' => ['query' => $presetMobileOptions, 'id' => 'id', 'name' => 'name'],
+                        'desc' => $this->trans('Pick a suggested mobile size to fill the width/height below, or "Custom" to type your own.', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                    ],
+                    [
+                        'type' => 'text',
+                        'label' => $this->trans('Mobile width', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                        'name' => self::FIXED_W_MOBILE_KEY,
+                        'class' => 'fixed-width-sm',
+                        'suffix' => 'px',
+                        'desc' => $this->trans('Allowed range: %1$d-%2$d px.', [self::FIXED_W_MIN_MOBILE, self::FIXED_W_MAX_MOBILE], 'Modules.Aplinesimplesliderbanner.Admin'),
+                    ],
+                    [
+                        'type' => 'text',
+                        'label' => $this->trans('Mobile height', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                        'name' => self::FIXED_H_MOBILE_KEY,
+                        'class' => 'fixed-width-sm',
+                        'suffix' => 'px',
+                        'desc' => $this->trans('Allowed range: %1$d-%2$d px. Width / height must stay between %3$s and %4$s.', [self::FIXED_H_MIN_MOBILE, self::FIXED_H_MAX_MOBILE, (string) self::FIXED_RATIO_MIN_MOBILE, (string) self::FIXED_RATIO_MAX_MOBILE], 'Modules.Aplinesimplesliderbanner.Admin'),
+                    ],
+                ],
+            ],
+        ];
+
+        // Fieldset 3 — page layout (Bootstrap container + custom class).
+        $layoutForm = [
+            'form' => [
+                'legend' => [
+                    'title' => $this->trans('Page layout', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                    'icon' => 'icon-th-large',
+                ],
+                'input' => [
+                    [
+                        'type' => 'switch',
+                        'label' => $this->trans('My theme uses Bootstrap', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                        'name' => self::BOOTSTRAP_KEY,
+                        'is_bool' => true,
+                        'values' => $boolSwitch('bootstrap'),
+                        'desc' => $this->trans('Turn on only if your theme loads Bootstrap (the PrestaShop Classic theme does). When on, the slider can be wrapped in a .container / .container-fluid per viewport below. When off, the slider stays edge to edge and the container options have no effect.', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                    ],
+                    [
+                        'type' => 'select',
+                        'label' => $this->trans('Desktop container', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                        'name' => self::CONTAINER_DESKTOP_KEY,
+                        'options' => ['query' => $containerOptions, 'id' => 'id', 'name' => 'name'],
+                        'desc' => $this->trans('How the slider is wrapped on desktop (needs Bootstrap on).', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                    ],
+                    [
+                        'type' => 'select',
+                        'label' => $this->trans('Mobile container', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                        'name' => self::CONTAINER_MOBILE_KEY,
+                        'options' => ['query' => $containerOptions, 'id' => 'id', 'name' => 'name'],
+                        'desc' => $this->trans('How the slider is wrapped on mobile (needs Bootstrap on).', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                    ],
+                    [
+                        'type' => 'text',
+                        'label' => $this->trans('Custom CSS class', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                        'name' => self::CUSTOM_CLASS_KEY,
+                        'class' => 'fixed-width-xxl',
+                        'desc' => $this->trans('Optional. Added to the slider root element so you can target it with your own CSS. Letters, digits, spaces, dashes and underscores only (max 64 chars).', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                    ],
+                ],
                 'submit' => ['title' => $this->trans('Save', [], 'Admin.Actions')],
             ],
         ];
@@ -455,16 +783,92 @@ class apline_simple_slider_banner extends Module implements WidgetInterface
         $helper->submit_action = 'submitAssbConfig';
         $helper->fields_value = [
             self::SPEED_KEY => (int) (Configuration::get(self::SPEED_KEY) ?: 5000),
-            self::CONTAINER_KEY => Configuration::get(self::CONTAINER_KEY) ?: 'none',
-            self::CUSTOM_CLASS_KEY => Configuration::get(self::CUSTOM_CLASS_KEY) ?: '',
             self::AUTOPLAY_KEY => (int) Configuration::get(self::AUTOPLAY_KEY),
             self::PAUSE_ON_HOVER_KEY => (int) Configuration::get(self::PAUSE_ON_HOVER_KEY),
             self::LOOP_KEY => (int) Configuration::get(self::LOOP_KEY),
             self::NAVIGATION_KEY => Configuration::get(self::NAVIGATION_KEY) ?: 'dots',
             self::TRANSITION_KEY => Configuration::get(self::TRANSITION_KEY) ?: 'slide',
+            self::SIZING_MODE_KEY => Configuration::get(self::SIZING_MODE_KEY) ?: 'natural',
+            self::FILL_MODE_KEY => Configuration::get(self::FILL_MODE_KEY) ?: 'cover',
+            // Presets always default to "custom" so they never overwrite the
+            // stored width/height on page load — the admin opts in by picking one.
+            'assb_preset_desktop' => 'custom',
+            self::FIXED_W_DESKTOP_KEY => (int) (Configuration::get(self::FIXED_W_DESKTOP_KEY) ?: self::FIXED_W_DESKTOP_DEFAULT),
+            self::FIXED_H_DESKTOP_KEY => (int) (Configuration::get(self::FIXED_H_DESKTOP_KEY) ?: self::FIXED_H_DESKTOP_DEFAULT),
+            'assb_preset_mobile' => 'custom',
+            self::FIXED_W_MOBILE_KEY => (int) (Configuration::get(self::FIXED_W_MOBILE_KEY) ?: self::FIXED_W_MOBILE_DEFAULT),
+            self::FIXED_H_MOBILE_KEY => (int) (Configuration::get(self::FIXED_H_MOBILE_KEY) ?: self::FIXED_H_MOBILE_DEFAULT),
+            self::BOOTSTRAP_KEY => (int) Configuration::get(self::BOOTSTRAP_KEY),
+            self::CONTAINER_DESKTOP_KEY => Configuration::get(self::CONTAINER_DESKTOP_KEY) ?: 'none',
+            self::CONTAINER_MOBILE_KEY => Configuration::get(self::CONTAINER_MOBILE_KEY) ?: 'none',
+            self::CUSTOM_CLASS_KEY => Configuration::get(self::CUSTOM_CLASS_KEY) ?: '',
         ];
 
-        return $helper->generateForm([$fields_form]);
+        return $helper->generateForm([$behaviourForm, $sizeForm, $layoutForm]) . $this->renderConfigFormScript();
+    }
+
+    /**
+     * Small inline script for the configuration page. Two jobs, both pure
+     * progressive enhancement (the server stays the source of truth):
+     *   1. When a size preset is picked, fill the matching width/height inputs.
+     *   2. Show the fixed-size fields only when sizing mode is "fixed".
+     * If the script fails to run, every field stays visible and editable and
+     * the save-time validation still applies.
+     *
+     * @return string
+     */
+    private function renderConfigFormScript()
+    {
+        $sizing = self::SIZING_MODE_KEY;
+        $fill = self::FILL_MODE_KEY;
+        $wd = self::FIXED_W_DESKTOP_KEY;
+        $hd = self::FIXED_H_DESKTOP_KEY;
+        $wm = self::FIXED_W_MOBILE_KEY;
+        $hm = self::FIXED_H_MOBILE_KEY;
+        $pd = 'assb_preset_desktop';
+        $pm = 'assb_preset_mobile';
+
+        return "
+<script>
+(function () {
+    'use strict';
+    function byName(n) { return document.querySelector('[name=\"' + n + '\"]'); }
+    function row(el) { return el ? el.closest('.form-group') : null; }
+
+    var presets = {
+        '{$pd}': { w: '{$wd}', h: '{$hd}' },
+        '{$pm}': { w: '{$wm}', h: '{$hm}' }
+    };
+    Object.keys(presets).forEach(function (pn) {
+        var sel = byName(pn);
+        if (!sel) { return; }
+        sel.addEventListener('change', function () {
+            var v = sel.value;
+            if (!v || v === 'custom') { return; }
+            var parts = v.split('x');
+            if (parts.length !== 2) { return; }
+            var wi = byName(presets[pn].w), hi = byName(presets[pn].h);
+            if (wi) { wi.value = parseInt(parts[0], 10) || wi.value; }
+            if (hi) { hi.value = parseInt(parts[1], 10) || hi.value; }
+        });
+    });
+
+    var sizing = byName('{$sizing}');
+    var fixedRows = ['{$fill}', '{$pd}', '{$wd}', '{$hd}', '{$pm}', '{$wm}', '{$hm}'];
+    function sync() {
+        if (!sizing) { return; }
+        var on = sizing.value === 'fixed';
+        fixedRows.forEach(function (n) {
+            var r = row(byName(n));
+            if (r) { r.style.display = on ? '' : 'none'; }
+        });
+    }
+    if (sizing) {
+        sizing.addEventListener('change', sync);
+        sync();
+    }
+})();
+</script>";
     }
 
     /**
@@ -783,9 +1187,24 @@ class apline_simple_slider_banner extends Module implements WidgetInterface
             $transition = 'slide';
         }
 
-        $container = Configuration::get(self::CONTAINER_KEY);
-        if (!in_array($container, self::CONTAINER_MODES, true)) {
-            $container = 'none';
+        $sizing = Configuration::get(self::SIZING_MODE_KEY);
+        if (!in_array($sizing, self::SIZING_MODES, true)) {
+            $sizing = 'natural';
+        }
+
+        $fill = Configuration::get(self::FILL_MODE_KEY);
+        if (!in_array($fill, self::FILL_MODES, true)) {
+            $fill = 'cover';
+        }
+
+        $containerDesktop = Configuration::get(self::CONTAINER_DESKTOP_KEY);
+        if (!in_array($containerDesktop, self::CONTAINER_MODES, true)) {
+            $containerDesktop = 'none';
+        }
+
+        $containerMobile = Configuration::get(self::CONTAINER_MOBILE_KEY);
+        if (!in_array($containerMobile, self::CONTAINER_MODES, true)) {
+            $containerMobile = 'none';
         }
 
         return [
@@ -795,7 +1214,15 @@ class apline_simple_slider_banner extends Module implements WidgetInterface
             'autoplay' => (bool) Configuration::get(self::AUTOPLAY_KEY),
             'navigation' => $navigation,
             'transition' => $transition,
-            'container' => $container,
+            'sizing' => $sizing,
+            'fill' => $fill,
+            'w_desktop' => $this->clampDimension((int) Configuration::get(self::FIXED_W_DESKTOP_KEY), self::FIXED_W_MIN_DESKTOP, self::FIXED_W_MAX_DESKTOP, self::FIXED_W_DESKTOP_DEFAULT),
+            'h_desktop' => $this->clampDimension((int) Configuration::get(self::FIXED_H_DESKTOP_KEY), self::FIXED_H_MIN_DESKTOP, self::FIXED_H_MAX_DESKTOP, self::FIXED_H_DESKTOP_DEFAULT),
+            'w_mobile' => $this->clampDimension((int) Configuration::get(self::FIXED_W_MOBILE_KEY), self::FIXED_W_MIN_MOBILE, self::FIXED_W_MAX_MOBILE, self::FIXED_W_MOBILE_DEFAULT),
+            'h_mobile' => $this->clampDimension((int) Configuration::get(self::FIXED_H_MOBILE_KEY), self::FIXED_H_MIN_MOBILE, self::FIXED_H_MAX_MOBILE, self::FIXED_H_MOBILE_DEFAULT),
+            'bootstrap' => (bool) Configuration::get(self::BOOTSTRAP_KEY),
+            'container_desktop' => $containerDesktop,
+            'container_mobile' => $containerMobile,
             'custom_class' => trim((string) Configuration::get(self::CUSTOM_CLASS_KEY)),
         ];
     }

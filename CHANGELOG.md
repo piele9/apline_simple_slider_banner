@@ -5,6 +5,62 @@ will be documented in this file. Format based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and adheres
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] – 2026-06-11
+
+Two pre-release polish features: fixed slider dimensions (so the
+slider height stops jumping when slides have differently sized
+images) and a per-viewport Bootstrap container wrapper.
+
+### Added
+- **Fixed slider size (`ASSB_SIZING_MODE` = `natural` | `fixed`).**
+  In `fixed` mode every slide shares set dimensions, configured
+  **separately for desktop and mobile**
+  (`ASSB_FIXED_W_DESKTOP` / `ASSB_FIXED_H_DESKTOP` /
+  `ASSB_FIXED_W_MOBILE` / `ASSB_FIXED_H_MOBILE`). The admin picks a
+  suggested preset or types a custom width × height. Implemented in
+  CSS as `aspect-ratio` + `max-width`, so a fixed slider scales down
+  proportionally on screens narrower than the chosen width instead of
+  overflowing. Default is `natural` — identical to v1.1.0 behaviour.
+- **Image fit for fixed mode (`ASSB_FILL_MODE` = `cover` | `fill` |
+  `contain`).** `cover` (default) fills and crops without distortion;
+  `fill` stretches to the exact box; `contain` letterboxes. Rendered
+  as CSS `object-fit`.
+- **Per-viewport Bootstrap container.** A single
+  `ASSB_CONTAINER` from v1.1.0 is replaced by an explicit
+  "My theme uses Bootstrap" switch (`ASSB_BOOTSTRAP`) plus
+  **independent** desktop and mobile container selects
+  (`ASSB_CONTAINER_DESKTOP` / `ASSB_CONTAINER_MOBILE`, each
+  `none` / `container` / `container-fluid`). Each slider now sits in
+  its own outer wrapper (`.assb-outer--desktop` / `.assb-outer--mobile`)
+  so the page-width decision can differ per viewport. Bootstrap is an
+  explicit toggle, not auto-detected (server-side detection of a
+  theme's loaded CSS is unreliable).
+- **Configuration form regrouped** into three fieldsets — *Slider
+  behaviour*, *Slide size*, *Page layout* — with a small progressive-
+  enhancement script that fills the width/height fields from a preset
+  and hides the fixed-size fields in natural mode.
+
+### Changed
+- **Dimension validation rejects, never clamps** (workspace policy):
+  out-of-range width/height or a proportion that would flip a
+  landscape banner into a portrait one returns a specific form error,
+  leaving the previous values intact. A defensive clamp is applied
+  only at render time, so a tampered Configuration row can't break the
+  markup.
+
+### Removed
+- The single `ASSB_CONTAINER` configuration key (superseded by the
+  per-viewport `ASSB_BOOTSTRAP` + `ASSB_CONTAINER_DESKTOP` +
+  `ASSB_CONTAINER_MOBILE`).
+
+### Upgrade notes
+- **Fresh install / reinstall.** No upgrade script ships with 1.2.0
+  (the module had not been publicly released between 1.1.0 and 1.2.0).
+  `ASSB_CONTAINER` is dropped on uninstall; the new keys are seeded
+  with safe defaults (natural sizing, Bootstrap off) on install, so a
+  fresh install behaves exactly like 1.1.0 until you opt into the new
+  options.
+
 ## [1.1.0] – 2026-05-27
 
 Three regressions / feature requests from the v1.0.0 smoke test:

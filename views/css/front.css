@@ -10,23 +10,28 @@
  */
 
 /* ---------- Desktop / mobile slider switch ----------
-   The module renders two independent sliders (`.assb-slider--desktop`
-   and `.assb-slider--mobile`) and toggles their visibility via media
-   query at the 767px breakpoint. Per-slide images and visibility flags
-   are strict — a slide is included only on the viewports it explicitly
-   targets (server-side filtering in buildSlides($viewport)). No
-   cross-viewport fallback. */
-.apline-simple-slider-banner.assb-slider--desktop {
+   The module renders two independent sliders, each wrapped in its own
+   outer element (`.assb-outer--desktop` / `.assb-outer--mobile`) so the
+   per-viewport Bootstrap container class (Task 2, v1.2.0) can differ
+   between viewports. The 767px media query toggles the WRAPPERS (not the
+   inner sliders), which cleanly hides the inactive viewport's container
+   too. Per-slide images and visibility flags are strict — a slide is
+   included only on the viewports it explicitly targets (server-side
+   filtering in buildSlides($viewport)). No cross-viewport fallback. */
+.assb-outer {
+    width: 100%;
+}
+.assb-outer--desktop {
     display: block;
 }
-.apline-simple-slider-banner.assb-slider--mobile {
+.assb-outer--mobile {
     display: none;
 }
 @media (max-width: 767px) {
-    .apline-simple-slider-banner.assb-slider--desktop {
+    .assb-outer--desktop {
         display: none;
     }
-    .apline-simple-slider-banner.assb-slider--mobile {
+    .assb-outer--mobile {
         display: block;
     }
 }
@@ -71,6 +76,33 @@
 
 .apline-simple-slider-banner a.assb-slide:hover img {
     opacity: 0.92;
+}
+
+/* ---------- Fixed size (Task 1, v1.2.0) ----------
+   When the admin picks "Fixed" sizing, the slider root carries
+   .assb-slider--fixed plus inline --assb-w / --assb-h / --assb-fit custom
+   properties (per viewport, set by slider.tpl). We turn that width:height
+   pair into an aspect-ratio plus a max-width cap, so every slide shares one
+   size and the whole slider scales down proportionally on screens narrower
+   than the chosen width (instead of overflowing or jumping in height).
+   Images fill the box via object-fit — "cover" by default (fills and crops,
+   never distorts); "fill" stretches; "contain" letterboxes. */
+.apline-simple-slider-banner.assb-slider--fixed {
+    width: 100%;
+    max-width: calc(var(--assb-w) * 1px);
+    aspect-ratio: var(--assb-w) / var(--assb-h);
+    height: auto;
+    margin-left: auto;
+    margin-right: auto;
+}
+.apline-simple-slider-banner.assb-slider--fixed .assb-track,
+.apline-simple-slider-banner.assb-slider--fixed .assb-slide {
+    height: 100%;
+}
+.apline-simple-slider-banner.assb-slider--fixed .assb-slide img {
+    width: 100%;
+    height: 100%;
+    object-fit: var(--assb-fit, cover);
 }
 
 /* ---------- Fade transition variant (CP05 toggles .assb-slide.active) ---------- */
