@@ -220,15 +220,40 @@ the home-page hook.
 
 ## 🖼️ Screenshots
 
-Install the module on a PrestaShop 9 staging shop to see it in action:
+### Configuration
 
-- **Configuration page** — the three-panel settings form (slider
-  behaviour, slide size, page layout)
-- **Slides management** — drag-and-drop ordering with a dual desktop /
-  mobile image preview per slide
-- **Front-end** — the slider on the home page
+The settings page is grouped into three panels.
 
-Annotated screenshots will be added in a future update.
+**Slider behaviour** — speed, autoplay, pause-on-hover, loop, navigation
+and transition (plus the *Manage slides* entry point):
+
+![Configuration — Slider behaviour panel](docs/config.png)
+
+**Slide size** — natural height or a fixed size shared by every slide,
+set independently for desktop and mobile, with presets and an image-fit
+mode:
+
+![Configuration — Slide size panel](docs/config2.png)
+
+**Page layout** — the "My theme uses Bootstrap" switch and a per-viewport
+`.container` / `.container-fluid` choice, plus an optional custom CSS
+class:
+
+![Configuration — Page layout panel](docs/config3.png)
+
+### Slides management
+
+Drag-and-drop list with a desktop and a mobile thumbnail per slide:
+
+![Slides management list](docs/slides.png)
+
+The slide editor — separate desktop and mobile images, per-image alt
+text, an optional click-through URL and independent per-viewport
+visibility:
+
+![Slide editor — images and alt text](docs/slide-edit1.png)
+
+![Slide editor — link and per-viewport visibility](docs/slide-edit2.png)
 
 ## 🛠️ Troubleshooting
 
