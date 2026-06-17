@@ -5,6 +5,16 @@ will be documented in this file. Format based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and adheres
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.1] – 2026-06-17
+
+### Changed
+- Updated the module logo to the branded APLINE artwork.
+
+### Internal
+- Removed internal development files from the installable zip and the
+  repository: `CLAUDE.md` is no longer shipped, and `PLAN.md` /
+  `checkpoints/` are excluded via `.gitignore`.
+
 ## [1.2.0] – 2026-06-11
 
 Two pre-release polish features: fixed slider dimensions (so the

@@ -120,7 +120,7 @@ class apline_simple_slider_banner extends Module implements WidgetInterface
     {
         $this->name = 'apline_simple_slider_banner';
         $this->tab = 'front_office_features';
-        $this->version = '1.2.0';
+        $this->version = '1.2.1';
         $this->author = 'APLINE Arkadiusz Pielechowski';
         $this->need_instance = false;
         $this->bootstrap = true;

@@ -1,7 +1,11 @@
-# Runtime-uploaded images
-views/img/assb_*
-
 # OS / editor junk
 .DS_Store
 Thumbs.db
 *.swp
+CLAUDE.md
+HANDOFF.md
+PLAN.md
+checkpoints/
+
+# Runtime-uploaded images
+views/img/assb_*
