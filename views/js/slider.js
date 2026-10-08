@@ -93,7 +93,7 @@
             var btn = document.createElement('button');
             btn.type = 'button';
             btn.setAttribute('role', 'tab');
-            btn.setAttribute('aria-label', 'Go to slide ' + (i + 1));
+            btn.setAttribute('aria-label', 'Przejdź do slajdu ' + (i + 1));
             btn.setAttribute('aria-selected', i === 0 ? 'true' : 'false');
             btn.setAttribute('data-assb-index', String(i));
             this.dotsContainer.appendChild(btn);

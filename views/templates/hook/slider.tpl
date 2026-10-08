@@ -76,8 +76,8 @@
   </div>
 
   {if $config.navigation == 'arrows' || $config.navigation == 'both'}
-    <button type="button" class="assb-arrow assb-arrow-prev" aria-label="Previous slide">&#8249;</button>
-    <button type="button" class="assb-arrow assb-arrow-next" aria-label="Next slide">&#8250;</button>
+    <button type="button" class="assb-arrow assb-arrow-prev" aria-label="Poprzedni slajd">&#8249;</button>
+    <button type="button" class="assb-arrow assb-arrow-next" aria-label="Następny slajd">&#8250;</button>
   {/if}
 
   {if $config.navigation == 'dots' || $config.navigation == 'both'}
@@ -121,8 +121,8 @@
   </div>
 
   {if $config.navigation == 'arrows' || $config.navigation == 'both'}
-    <button type="button" class="assb-arrow assb-arrow-prev" aria-label="Previous slide">&#8249;</button>
-    <button type="button" class="assb-arrow assb-arrow-next" aria-label="Next slide">&#8250;</button>
+    <button type="button" class="assb-arrow assb-arrow-prev" aria-label="Poprzedni slajd">&#8249;</button>
+    <button type="button" class="assb-arrow assb-arrow-next" aria-label="Następny slajd">&#8250;</button>
   {/if}
 
   {if $config.navigation == 'dots' || $config.navigation == 'both'}

@@ -39,7 +39,7 @@ class apline_simple_slider_banner extends Module implements WidgetInterface
 
     // Task 2 (v1.2.0) — Bootstrap container wrapper, per viewport.
     // Replaces the single ASSB_CONTAINER key from v1.1.0 (pre-release
-    // restructure — no shops carry saved settings yet, see CLAUDE.md §6).
+    // restructure — no shops carry saved settings yet, legacy layout).
     const BOOTSTRAP_KEY = 'ASSB_BOOTSTRAP';
     const CONTAINER_DESKTOP_KEY = 'ASSB_CONTAINER_DESKTOP';
     const CONTAINER_MOBILE_KEY = 'ASSB_CONTAINER_MOBILE';
@@ -88,7 +88,7 @@ class apline_simple_slider_banner extends Module implements WidgetInterface
     /**
      * Fixed-dimension bounds (px) and aspect-ratio (W/H) guards, per
      * viewport. Out-of-range or wrong-orientation values are REJECTED
-     * with a form error (workspace CLAUDE.md §3.4) — never silently
+     * with a form error  — never silently
      * clamped on save. getRenderConfig() applies a defensive clamp at
      * render time only, so a tampered Configuration row can't produce
      * broken markup.
@@ -120,16 +120,16 @@ class apline_simple_slider_banner extends Module implements WidgetInterface
     {
         $this->name = 'apline_simple_slider_banner';
         $this->tab = 'front_office_features';
-        $this->version = '1.2.1';
+        $this->version = '1.3.0';
         $this->author = 'APLINE Arkadiusz Pielechowski';
         $this->need_instance = false;
         $this->bootstrap = true;
 
         parent::__construct();
 
-        $this->displayName = $this->trans('APLINE Simple Slider Banner for PrestaShop 9', [], 'Modules.Aplinesimplesliderbanner.Admin');
-        $this->description = $this->trans('Lightweight image slider with separate desktop and mobile banners, optional URL per slide, configurable navigation and transitions.', [], 'Modules.Aplinesimplesliderbanner.Admin');
-        $this->confirmUninstall = $this->trans('Are you sure you want to uninstall this module? All slides will be deleted.', [], 'Modules.Aplinesimplesliderbanner.Admin');
+        $this->displayName = $this->trans('APLINE — slider banerów dla PrestaShop 9', [], 'Modules.Aplinesimplesliderbanner.Admin');
+        $this->description = $this->trans('Lekki slider z osobnymi banerami na komputer i telefon, opcjonalnymi linkami oraz ustawieniami nawigacji i przejść.', [], 'Modules.Aplinesimplesliderbanner.Admin');
+        $this->confirmUninstall = $this->trans('Czy chcesz odinstalować moduł? Wszystkie slajdy zostaną usunięte.', [], 'Modules.Aplinesimplesliderbanner.Admin');
 
         $this->ps_versions_compliancy = ['min' => '9.0', 'max' => _PS_VERSION_];
     }
@@ -165,7 +165,7 @@ class apline_simple_slider_banner extends Module implements WidgetInterface
         ) {
             // Roll back to a clean state so the shop is never left half-installed.
             $this->uninstall();
-            $this->_errors[] = $this->trans('Installation failed and was rolled back. Please check folder permissions and try again.', [], 'Modules.Aplinesimplesliderbanner.Admin');
+            $this->_errors[] = $this->trans('Instalacja nie powiodła się i została wycofana. Sprawdź uprawnienia katalogów i spróbuj ponownie.', [], 'Modules.Aplinesimplesliderbanner.Admin');
 
             return false;
         }
@@ -290,7 +290,7 @@ class apline_simple_slider_banner extends Module implements WidgetInterface
         // Hidden tab (no visible parent): managed from the module configuration page.
         $tab->id_parent = -1;
         foreach (Language::getLanguages(false) as $lang) {
-            $tab->name[$lang['id_lang']] = 'Simple Slider Banner';
+            $tab->name[$lang['id_lang']] = 'Slider banerów APLINE';
         }
 
         return (bool) $tab->add();
@@ -342,6 +342,7 @@ class apline_simple_slider_banner extends Module implements WidgetInterface
      */
     public function getContent()
     {
+        $this->context->controller->addCSS($this->getPathUri() . 'views/css/admin.css');
         $output = '';
 
         if (Tools::isSubmit('submitAssbConfig')) {
@@ -349,7 +350,7 @@ class apline_simple_slider_banner extends Module implements WidgetInterface
         }
 
         if (!$this->isUploadDirWritable()) {
-            $output .= $this->displayWarning($this->trans('The upload folder is not writable: %s. Image uploads will fail until you fix its permissions (e.g. chmod 0775).', [$this->getUploadDir()], 'Modules.Aplinesimplesliderbanner.Admin'));
+            $output .= $this->displayWarning($this->trans('Brak prawa zapisu w katalogu obrazów: %s. Przesyłanie obrazów wymaga poprawnych uprawnień (np. chmod 0775).', [$this->getUploadDir()], 'Modules.Aplinesimplesliderbanner.Admin'));
         }
 
         $manageUrl = $this->context->link->getAdminLink(self::ADMIN_CONTROLLER);
@@ -371,17 +372,17 @@ class apline_simple_slider_banner extends Module implements WidgetInterface
     {
         $navigation = (string) Tools::getValue(self::NAVIGATION_KEY);
         if (!in_array($navigation, self::NAVIGATION_MODES, true)) {
-            return $this->displayError($this->trans('Invalid navigation mode selected.', [], 'Modules.Aplinesimplesliderbanner.Admin'));
+            return $this->displayError($this->trans('Wybrano nieprawidłowy tryb nawigacji.', [], 'Modules.Aplinesimplesliderbanner.Admin'));
         }
 
         $transition = (string) Tools::getValue(self::TRANSITION_KEY);
         if (!in_array($transition, self::TRANSITION_MODES, true)) {
-            return $this->displayError($this->trans('Invalid transition mode selected.', [], 'Modules.Aplinesimplesliderbanner.Admin'));
+            return $this->displayError($this->trans('Wybrano nieprawidłowy rodzaj przejścia.', [], 'Modules.Aplinesimplesliderbanner.Admin'));
         }
 
         $speed = (int) Tools::getValue(self::SPEED_KEY);
         if ($speed < 500 || $speed > 30000) {
-            return $this->displayError($this->trans('Speed must be between 500 and 30000 milliseconds.', [], 'Modules.Aplinesimplesliderbanner.Admin'));
+            return $this->displayError($this->trans('Czas musi wynosić od 500 do 30000 milisekund.', [], 'Modules.Aplinesimplesliderbanner.Admin'));
         }
 
         // --- Task 2: Bootstrap container wrapper (per viewport) ---
@@ -389,29 +390,29 @@ class apline_simple_slider_banner extends Module implements WidgetInterface
 
         $containerDesktop = (string) Tools::getValue(self::CONTAINER_DESKTOP_KEY);
         if (!in_array($containerDesktop, self::CONTAINER_MODES, true)) {
-            return $this->displayError($this->trans('Invalid desktop container layout selected.', [], 'Modules.Aplinesimplesliderbanner.Admin'));
+            return $this->displayError($this->trans('Wybrano nieprawidłowy układ kontenera na komputerze.', [], 'Modules.Aplinesimplesliderbanner.Admin'));
         }
 
         $containerMobile = (string) Tools::getValue(self::CONTAINER_MOBILE_KEY);
         if (!in_array($containerMobile, self::CONTAINER_MODES, true)) {
-            return $this->displayError($this->trans('Invalid mobile container layout selected.', [], 'Modules.Aplinesimplesliderbanner.Admin'));
+            return $this->displayError($this->trans('Wybrano nieprawidłowy układ kontenera na telefonie.', [], 'Modules.Aplinesimplesliderbanner.Admin'));
         }
 
         // --- Task 1: fixed slider dimensions (per viewport) ---
         $sizingMode = (string) Tools::getValue(self::SIZING_MODE_KEY);
         if (!in_array($sizingMode, self::SIZING_MODES, true)) {
-            return $this->displayError($this->trans('Invalid slide sizing mode selected.', [], 'Modules.Aplinesimplesliderbanner.Admin'));
+            return $this->displayError($this->trans('Wybrano nieprawidłowy tryb rozmiaru slajdów.', [], 'Modules.Aplinesimplesliderbanner.Admin'));
         }
 
         $fillMode = (string) Tools::getValue(self::FILL_MODE_KEY);
         if (!in_array($fillMode, self::FILL_MODES, true)) {
-            return $this->displayError($this->trans('Invalid image fit mode selected.', [], 'Modules.Aplinesimplesliderbanner.Admin'));
+            return $this->displayError($this->trans('Wybrano nieprawidłowy sposób dopasowania obrazów.', [], 'Modules.Aplinesimplesliderbanner.Admin'));
         }
 
         // Dimensions are always validated (the fields are always posted), so
         // the stored values stay sane and a later switch to "fixed" always
         // has usable numbers. Reject out-of-range / wrong-orientation values
-        // instead of silently clamping (workspace CLAUDE.md §3.4).
+        // instead of silently clamping .
         $wDesktop = (int) Tools::getValue(self::FIXED_W_DESKTOP_KEY);
         $hDesktop = (int) Tools::getValue(self::FIXED_H_DESKTOP_KEY);
         $wMobile = (int) Tools::getValue(self::FIXED_W_MOBILE_KEY);
@@ -422,7 +423,7 @@ class apline_simple_slider_banner extends Module implements WidgetInterface
             self::FIXED_W_MIN_DESKTOP, self::FIXED_W_MAX_DESKTOP,
             self::FIXED_H_MIN_DESKTOP, self::FIXED_H_MAX_DESKTOP,
             self::FIXED_RATIO_MIN_DESKTOP, self::FIXED_RATIO_MAX_DESKTOP,
-            $this->trans('Desktop', [], 'Modules.Aplinesimplesliderbanner.Admin')
+            $this->trans('Komputer', [], 'Modules.Aplinesimplesliderbanner.Admin')
         );
         if ($dimError !== '') {
             return $this->displayError($dimError);
@@ -433,7 +434,7 @@ class apline_simple_slider_banner extends Module implements WidgetInterface
             self::FIXED_W_MIN_MOBILE, self::FIXED_W_MAX_MOBILE,
             self::FIXED_H_MIN_MOBILE, self::FIXED_H_MAX_MOBILE,
             self::FIXED_RATIO_MIN_MOBILE, self::FIXED_RATIO_MAX_MOBILE,
-            $this->trans('Mobile', [], 'Modules.Aplinesimplesliderbanner.Admin')
+            $this->trans('Telefon', [], 'Modules.Aplinesimplesliderbanner.Admin')
         );
         if ($dimError !== '') {
             return $this->displayError($dimError);
@@ -442,13 +443,13 @@ class apline_simple_slider_banner extends Module implements WidgetInterface
         // Custom CSS class: validated regex (letters, digits, space, dash,
         // underscore — same charset as a CSS identifier list). Reject on
         // length / charset mismatch instead of silently stripping —
-        // workspace CLAUDE.md §3.4 (validation rejects, never truncates).
+        // Validation rejects invalid values without truncation.
         $customClass = trim((string) Tools::getValue(self::CUSTOM_CLASS_KEY));
         if (mb_strlen($customClass) > self::CUSTOM_CLASS_MAX_LEN) {
-            return $this->displayError($this->trans('Custom CSS class must be %d characters or less.', [self::CUSTOM_CLASS_MAX_LEN], 'Modules.Aplinesimplesliderbanner.Admin'));
+            return $this->displayError($this->trans('Własna klasa CSS może mieć najwyżej %d znaków.', [self::CUSTOM_CLASS_MAX_LEN], 'Modules.Aplinesimplesliderbanner.Admin'));
         }
         if ($customClass !== '' && !preg_match('/^[a-zA-Z0-9 _-]+$/', $customClass)) {
-            return $this->displayError($this->trans('Custom CSS class may only contain letters, digits, spaces, dashes and underscores.', [], 'Modules.Aplinesimplesliderbanner.Admin'));
+            return $this->displayError($this->trans('Własna klasa CSS może zawierać tylko litery, cyfry, spacje, myślniki i podkreślenia.', [], 'Modules.Aplinesimplesliderbanner.Admin'));
         }
 
         Configuration::updateValue(self::NAVIGATION_KEY, $navigation);
@@ -470,14 +471,14 @@ class apline_simple_slider_banner extends Module implements WidgetInterface
         Configuration::updateValue(self::CONTAINER_DESKTOP_KEY, $containerDesktop);
         Configuration::updateValue(self::CONTAINER_MOBILE_KEY, $containerMobile);
 
-        return $this->displayConfirmation($this->trans('Slider settings saved.', [], 'Modules.Aplinesimplesliderbanner.Admin'));
+        return $this->displayConfirmation($this->trans('Zapisano ustawienia slidera.', [], 'Modules.Aplinesimplesliderbanner.Admin'));
     }
 
     /**
      * Validate one viewport's fixed dimensions: width range, height range
      * and aspect-ratio (W/H) guard. Returns a ready-to-display error
      * string, or '' when the dimensions are valid. Rejects rather than
-     * clamps (workspace CLAUDE.md §3.4). The ratio guard prevents an admin
+     * clamps . The ratio guard prevents an admin
      * accidentally turning a landscape banner into a portrait one.
      *
      * @param int $w
@@ -495,17 +496,17 @@ class apline_simple_slider_banner extends Module implements WidgetInterface
     private function validateFixedDimensions($w, $h, $wMin, $wMax, $hMin, $hMax, $ratioMin, $ratioMax, $label)
     {
         if ($w < $wMin || $w > $wMax) {
-            return $this->trans('%1$s width must be between %2$d and %3$d pixels.', [$label, $wMin, $wMax], 'Modules.Aplinesimplesliderbanner.Admin');
+            return $this->trans('%1$s: szerokość musi wynosić od %2$d do %3$d pikseli.', [$label, $wMin, $wMax], 'Modules.Aplinesimplesliderbanner.Admin');
         }
         if ($h < $hMin || $h > $hMax) {
-            return $this->trans('%1$s height must be between %2$d and %3$d pixels.', [$label, $hMin, $hMax], 'Modules.Aplinesimplesliderbanner.Admin');
+            return $this->trans('%1$s: wysokość musi wynosić od %2$d do %3$d pikseli.', [$label, $hMin, $hMax], 'Modules.Aplinesimplesliderbanner.Admin');
         }
 
         // $h >= $hMin > 0 is guaranteed by the height check above.
         $ratio = $w / $h;
         if ($ratio < $ratioMin || $ratio > $ratioMax) {
             return $this->trans(
-                '%1$s proportions are out of range: width / height must be between %2$s and %3$s. This guard stops a landscape banner being turned into a portrait one (or an absurd ultra-wide strip).',
+                '%1$s: stosunek szerokości do wysokości musi wynosić od %2$s do %3$s. Chroni to baner przed nieprawidłowymi proporcjami.',
                 [$label, (string) $ratioMin, (string) $ratioMax],
                 'Modules.Aplinesimplesliderbanner.Admin'
             );
@@ -547,39 +548,39 @@ class apline_simple_slider_banner extends Module implements WidgetInterface
     private function renderConfigForm()
     {
         $navigationOptions = [
-            ['id' => 'dots', 'name' => $this->trans('Dots only', [], 'Modules.Aplinesimplesliderbanner.Admin')],
-            ['id' => 'arrows', 'name' => $this->trans('Arrows only', [], 'Modules.Aplinesimplesliderbanner.Admin')],
-            ['id' => 'both', 'name' => $this->trans('Dots + arrows', [], 'Modules.Aplinesimplesliderbanner.Admin')],
-            ['id' => 'none', 'name' => $this->trans('No navigation (autoplay only)', [], 'Modules.Aplinesimplesliderbanner.Admin')],
+            ['id' => 'dots', 'name' => $this->trans('Tylko kropki', [], 'Modules.Aplinesimplesliderbanner.Admin')],
+            ['id' => 'arrows', 'name' => $this->trans('Tylko strzałki', [], 'Modules.Aplinesimplesliderbanner.Admin')],
+            ['id' => 'both', 'name' => $this->trans('Kropki i strzałki', [], 'Modules.Aplinesimplesliderbanner.Admin')],
+            ['id' => 'none', 'name' => $this->trans('Bez nawigacji (tylko automatyczne przewijanie)', [], 'Modules.Aplinesimplesliderbanner.Admin')],
         ];
 
         $transitionOptions = [
-            ['id' => 'slide', 'name' => $this->trans('Slide (horizontal)', [], 'Modules.Aplinesimplesliderbanner.Admin')],
-            ['id' => 'fade', 'name' => $this->trans('Fade (opacity)', [], 'Modules.Aplinesimplesliderbanner.Admin')],
+            ['id' => 'slide', 'name' => $this->trans('Przesunięcie w poziomie', [], 'Modules.Aplinesimplesliderbanner.Admin')],
+            ['id' => 'fade', 'name' => $this->trans('Przenikanie', [], 'Modules.Aplinesimplesliderbanner.Admin')],
         ];
 
         // Container options reused for both the desktop and the mobile select.
         $containerOptions = [
-            ['id' => 'none', 'name' => $this->trans('Edge to edge (no wrapper)', [], 'Modules.Aplinesimplesliderbanner.Admin')],
-            ['id' => 'container', 'name' => $this->trans('Constrained to page width (.container)', [], 'Modules.Aplinesimplesliderbanner.Admin')],
-            ['id' => 'container-fluid', 'name' => $this->trans('Full browser width with padding (.container-fluid)', [], 'Modules.Aplinesimplesliderbanner.Admin')],
+            ['id' => 'none', 'name' => $this->trans('Od krawędzi do krawędzi (bez kontenera)', [], 'Modules.Aplinesimplesliderbanner.Admin')],
+            ['id' => 'container', 'name' => $this->trans('Szerokość strony (.container)', [], 'Modules.Aplinesimplesliderbanner.Admin')],
+            ['id' => 'container-fluid', 'name' => $this->trans('Pełna szerokość przeglądarki z odstępami (.container-fluid)', [], 'Modules.Aplinesimplesliderbanner.Admin')],
         ];
 
         $sizingOptions = [
-            ['id' => 'natural', 'name' => $this->trans('Natural height — follow each image (default)', [], 'Modules.Aplinesimplesliderbanner.Admin')],
-            ['id' => 'fixed', 'name' => $this->trans('Fixed size — all slides share set dimensions', [], 'Modules.Aplinesimplesliderbanner.Admin')],
+            ['id' => 'natural', 'name' => $this->trans('Naturalna wysokość — zgodna z obrazem (domyślnie)', [], 'Modules.Aplinesimplesliderbanner.Admin')],
+            ['id' => 'fixed', 'name' => $this->trans('Stały rozmiar — jednakowe wymiary slajdów', [], 'Modules.Aplinesimplesliderbanner.Admin')],
         ];
 
         $fillOptions = [
-            ['id' => 'cover', 'name' => $this->trans('Cover — fill the box, crop overflow (no distortion)', [], 'Modules.Aplinesimplesliderbanner.Admin')],
-            ['id' => 'fill', 'name' => $this->trans('Fill — stretch exactly to the box (may distort)', [], 'Modules.Aplinesimplesliderbanner.Admin')],
-            ['id' => 'contain', 'name' => $this->trans('Contain — whole image, may show empty bars', [], 'Modules.Aplinesimplesliderbanner.Admin')],
+            ['id' => 'cover', 'name' => $this->trans('Wypełnienie z przycięciem — bez zniekształceń', [], 'Modules.Aplinesimplesliderbanner.Admin')],
+            ['id' => 'fill', 'name' => $this->trans('Rozciągnięcie — może zniekształcać obraz', [], 'Modules.Aplinesimplesliderbanner.Admin')],
+            ['id' => 'contain', 'name' => $this->trans('Cały obraz — możliwe puste pasy', [], 'Modules.Aplinesimplesliderbanner.Admin')],
         ];
 
         // Size presets are pure UI helpers — they prefill the width/height
         // fields client-side (see renderConfigFormScript) and are NOT saved
         // as Configuration. The stored truth is always the px width/height.
-        $customLabel = $this->trans('Custom — use the width/height below', [], 'Modules.Aplinesimplesliderbanner.Admin');
+        $customLabel = $this->trans('Własny — podaj szerokość i wysokość poniżej', [], 'Modules.Aplinesimplesliderbanner.Admin');
         $presetDesktopOptions = [
             ['id' => '1920x600', 'name' => '1920 × 600 (16:5)'],
             ['id' => '1600x500', 'name' => '1600 × 500 (16:5)'],
@@ -597,8 +598,8 @@ class apline_simple_slider_banner extends Module implements WidgetInterface
 
         $boolSwitch = function ($idPrefix) {
             return [
-                ['id' => $idPrefix . '_on', 'value' => 1, 'label' => $this->trans('Yes', [], 'Admin.Global')],
-                ['id' => $idPrefix . '_off', 'value' => 0, 'label' => $this->trans('No', [], 'Admin.Global')],
+                ['id' => $idPrefix . '_on', 'value' => 1, 'label' => $this->trans('Tak', [], 'Admin.Global')],
+                ['id' => $idPrefix . '_off', 'value' => 0, 'label' => $this->trans('Nie', [], 'Admin.Global')],
             ];
         };
 
@@ -606,55 +607,55 @@ class apline_simple_slider_banner extends Module implements WidgetInterface
         $behaviourForm = [
             'form' => [
                 'legend' => [
-                    'title' => $this->trans('Slider behaviour', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                    'title' => $this->trans('Zachowanie slidera', [], 'Modules.Aplinesimplesliderbanner.Admin'),
                     'icon' => 'icon-cogs',
                 ],
                 'input' => [
                     [
                         'type' => 'text',
-                        'label' => $this->trans('Speed (ms)', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                        'label' => $this->trans('Czas zmiany (ms)', [], 'Modules.Aplinesimplesliderbanner.Admin'),
                         'name' => self::SPEED_KEY,
                         'class' => 'fixed-width-sm',
                         'suffix' => 'ms',
-                        'desc' => $this->trans('Time between slides in milliseconds. 5000 = 5 seconds. Allowed range: 500-30000.', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                        'desc' => $this->trans('Czas między slajdami w milisekundach. 5000 = 5 sekund. Zakres: 500–30000.', [], 'Modules.Aplinesimplesliderbanner.Admin'),
                     ],
                     [
                         'type' => 'switch',
-                        'label' => $this->trans('Autoplay', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                        'label' => $this->trans('Automatyczne przewijanie', [], 'Modules.Aplinesimplesliderbanner.Admin'),
                         'name' => self::AUTOPLAY_KEY,
                         'is_bool' => true,
                         'values' => $boolSwitch('autoplay'),
-                        'desc' => $this->trans('Auto-advance through slides on a timer.', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                        'desc' => $this->trans('Zmieniaj slajdy automatycznie w ustawionych odstępach.', [], 'Modules.Aplinesimplesliderbanner.Admin'),
                     ],
                     [
                         'type' => 'switch',
-                        'label' => $this->trans('Pause on hover', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                        'label' => $this->trans('Pauza po najechaniu', [], 'Modules.Aplinesimplesliderbanner.Admin'),
                         'name' => self::PAUSE_ON_HOVER_KEY,
                         'is_bool' => true,
                         'values' => $boolSwitch('pause_on_hover'),
-                        'desc' => $this->trans('Stop auto-advance while the cursor is over the slider.', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                        'desc' => $this->trans('Zatrzymaj automatyczne przewijanie, gdy kursor znajduje się nad sliderem.', [], 'Modules.Aplinesimplesliderbanner.Admin'),
                     ],
                     [
                         'type' => 'switch',
-                        'label' => $this->trans('Loop forever', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                        'label' => $this->trans('Zapętlenie', [], 'Modules.Aplinesimplesliderbanner.Admin'),
                         'name' => self::LOOP_KEY,
                         'is_bool' => true,
                         'values' => $boolSwitch('loop'),
-                        'desc' => $this->trans('After the last slide, wrap back to the first. If off, the slider stops at the last slide (the user can still navigate manually).', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                        'desc' => $this->trans('Po ostatnim slajdzie wróć do pierwszego. Po wyłączeniu slider zatrzyma się na ostatnim slajdzie; nadal można przełączać go ręcznie.', [], 'Modules.Aplinesimplesliderbanner.Admin'),
                     ],
                     [
                         'type' => 'select',
-                        'label' => $this->trans('Navigation', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                        'label' => $this->trans('Nawigacja', [], 'Modules.Aplinesimplesliderbanner.Admin'),
                         'name' => self::NAVIGATION_KEY,
                         'options' => ['query' => $navigationOptions, 'id' => 'id', 'name' => 'name'],
-                        'desc' => $this->trans('Which manual navigation controls are visible.', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                        'desc' => $this->trans('Widoczne przyciski ręcznego przełączania slajdów.', [], 'Modules.Aplinesimplesliderbanner.Admin'),
                     ],
                     [
                         'type' => 'select',
-                        'label' => $this->trans('Transition', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                        'label' => $this->trans('Przejście', [], 'Modules.Aplinesimplesliderbanner.Admin'),
                         'name' => self::TRANSITION_KEY,
                         'options' => ['query' => $transitionOptions, 'id' => 'id', 'name' => 'name'],
-                        'desc' => $this->trans('Slide horizontally or fade between slides.', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                        'desc' => $this->trans('Przesuwaj slajdy w poziomie lub przenikaj między nimi.', [], 'Modules.Aplinesimplesliderbanner.Admin'),
                     ],
                 ],
             ],
@@ -664,69 +665,69 @@ class apline_simple_slider_banner extends Module implements WidgetInterface
         $sizeForm = [
             'form' => [
                 'legend' => [
-                    'title' => $this->trans('Slide size', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                    'title' => $this->trans('Rozmiar slajdów', [], 'Modules.Aplinesimplesliderbanner.Admin'),
                     'icon' => 'icon-picture',
                 ],
                 'input' => [
                     [
                         'type' => 'select',
-                        'label' => $this->trans('Sizing mode', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                        'label' => $this->trans('Tryb rozmiaru', [], 'Modules.Aplinesimplesliderbanner.Admin'),
                         'name' => self::SIZING_MODE_KEY,
                         'options' => ['query' => $sizingOptions, 'id' => 'id', 'name' => 'name'],
-                        'desc' => $this->trans('"Natural" keeps each image at its own aspect ratio — the slider height follows the image (default). "Fixed" makes every slide share the dimensions below, so the height never jumps between slides of different sizes. On narrow screens a fixed slider scales down proportionally (it keeps the width / height ratio).', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                        'desc' => $this->trans('Tryb naturalny zachowuje proporcje każdego obrazu i dopasowuje do niego wysokość slidera. Stały rozmiar zapewnia jednakowe wymiary wszystkich slajdów i zapobiega skokom wysokości. Na wąskich ekranach slider zmniejsza się proporcjonalnie.', [], 'Modules.Aplinesimplesliderbanner.Admin'),
                     ],
                     [
                         'type' => 'select',
-                        'label' => $this->trans('Image fit (fixed mode)', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                        'label' => $this->trans('Dopasowanie obrazu (stały rozmiar)', [], 'Modules.Aplinesimplesliderbanner.Admin'),
                         'name' => self::FILL_MODE_KEY,
                         'options' => ['query' => $fillOptions, 'id' => 'id', 'name' => 'name'],
-                        'desc' => $this->trans('How each image fills the fixed box when its proportions differ. "Cover" is the safe banner default — fills and crops, never distorts.', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                        'desc' => $this->trans('Sposób wypełnienia stałego obszaru, gdy proporcje obrazu są inne. Wypełnienie z przycięciem nie zniekształca obrazu i jest zalecane dla banerów.', [], 'Modules.Aplinesimplesliderbanner.Admin'),
                     ],
                     [
                         'type' => 'select',
-                        'label' => $this->trans('Desktop size preset', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                        'label' => $this->trans('Gotowy rozmiar na komputer', [], 'Modules.Aplinesimplesliderbanner.Admin'),
                         'name' => 'assb_preset_desktop',
                         'options' => ['query' => $presetDesktopOptions, 'id' => 'id', 'name' => 'name'],
-                        'desc' => $this->trans('Pick a suggested desktop size to fill the width/height below, or "Custom" to type your own.', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                        'desc' => $this->trans('Wybierz sugerowane wymiary lub opcję Własny, aby wpisać szerokość i wysokość.', [], 'Modules.Aplinesimplesliderbanner.Admin'),
                     ],
                     [
                         'type' => 'text',
-                        'label' => $this->trans('Desktop width', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                        'label' => $this->trans('Szerokość na komputerze', [], 'Modules.Aplinesimplesliderbanner.Admin'),
                         'name' => self::FIXED_W_DESKTOP_KEY,
                         'class' => 'fixed-width-sm',
                         'suffix' => 'px',
-                        'desc' => $this->trans('Allowed range: %1$d-%2$d px.', [self::FIXED_W_MIN_DESKTOP, self::FIXED_W_MAX_DESKTOP], 'Modules.Aplinesimplesliderbanner.Admin'),
+                        'desc' => $this->trans('Dozwolony zakres: %1$d–%2$d px.', [self::FIXED_W_MIN_DESKTOP, self::FIXED_W_MAX_DESKTOP], 'Modules.Aplinesimplesliderbanner.Admin'),
                     ],
                     [
                         'type' => 'text',
-                        'label' => $this->trans('Desktop height', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                        'label' => $this->trans('Wysokość na komputerze', [], 'Modules.Aplinesimplesliderbanner.Admin'),
                         'name' => self::FIXED_H_DESKTOP_KEY,
                         'class' => 'fixed-width-sm',
                         'suffix' => 'px',
-                        'desc' => $this->trans('Allowed range: %1$d-%2$d px. Width / height must stay between %3$s and %4$s (landscape).', [self::FIXED_H_MIN_DESKTOP, self::FIXED_H_MAX_DESKTOP, (string) self::FIXED_RATIO_MIN_DESKTOP, (string) self::FIXED_RATIO_MAX_DESKTOP], 'Modules.Aplinesimplesliderbanner.Admin'),
+                        'desc' => $this->trans('Dozwolony zakres: %1$d–%2$d px. Stosunek szerokości do wysokości: %3$s–%4$s (układ poziomy).', [self::FIXED_H_MIN_DESKTOP, self::FIXED_H_MAX_DESKTOP, (string) self::FIXED_RATIO_MIN_DESKTOP, (string) self::FIXED_RATIO_MAX_DESKTOP], 'Modules.Aplinesimplesliderbanner.Admin'),
                     ],
                     [
                         'type' => 'select',
-                        'label' => $this->trans('Mobile size preset', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                        'label' => $this->trans('Gotowy rozmiar na telefon', [], 'Modules.Aplinesimplesliderbanner.Admin'),
                         'name' => 'assb_preset_mobile',
                         'options' => ['query' => $presetMobileOptions, 'id' => 'id', 'name' => 'name'],
-                        'desc' => $this->trans('Pick a suggested mobile size to fill the width/height below, or "Custom" to type your own.', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                        'desc' => $this->trans('Wybierz sugerowane wymiary lub opcję Własny, aby wpisać szerokość i wysokość telefonu.', [], 'Modules.Aplinesimplesliderbanner.Admin'),
                     ],
                     [
                         'type' => 'text',
-                        'label' => $this->trans('Mobile width', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                        'label' => $this->trans('Szerokość na telefonie', [], 'Modules.Aplinesimplesliderbanner.Admin'),
                         'name' => self::FIXED_W_MOBILE_KEY,
                         'class' => 'fixed-width-sm',
                         'suffix' => 'px',
-                        'desc' => $this->trans('Allowed range: %1$d-%2$d px.', [self::FIXED_W_MIN_MOBILE, self::FIXED_W_MAX_MOBILE], 'Modules.Aplinesimplesliderbanner.Admin'),
+                        'desc' => $this->trans('Dozwolony zakres: %1$d–%2$d px.', [self::FIXED_W_MIN_MOBILE, self::FIXED_W_MAX_MOBILE], 'Modules.Aplinesimplesliderbanner.Admin'),
                     ],
                     [
                         'type' => 'text',
-                        'label' => $this->trans('Mobile height', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                        'label' => $this->trans('Wysokość na telefonie', [], 'Modules.Aplinesimplesliderbanner.Admin'),
                         'name' => self::FIXED_H_MOBILE_KEY,
                         'class' => 'fixed-width-sm',
                         'suffix' => 'px',
-                        'desc' => $this->trans('Allowed range: %1$d-%2$d px. Width / height must stay between %3$s and %4$s.', [self::FIXED_H_MIN_MOBILE, self::FIXED_H_MAX_MOBILE, (string) self::FIXED_RATIO_MIN_MOBILE, (string) self::FIXED_RATIO_MAX_MOBILE], 'Modules.Aplinesimplesliderbanner.Admin'),
+                        'desc' => $this->trans('Dozwolony zakres: %1$d–%2$d px. Stosunek szerokości do wysokości: %3$s–%4$s.', [self::FIXED_H_MIN_MOBILE, self::FIXED_H_MAX_MOBILE, (string) self::FIXED_RATIO_MIN_MOBILE, (string) self::FIXED_RATIO_MAX_MOBILE], 'Modules.Aplinesimplesliderbanner.Admin'),
                     ],
                 ],
             ],
@@ -736,41 +737,41 @@ class apline_simple_slider_banner extends Module implements WidgetInterface
         $layoutForm = [
             'form' => [
                 'legend' => [
-                    'title' => $this->trans('Page layout', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                    'title' => $this->trans('Układ strony', [], 'Modules.Aplinesimplesliderbanner.Admin'),
                     'icon' => 'icon-th-large',
                 ],
                 'input' => [
                     [
                         'type' => 'switch',
-                        'label' => $this->trans('My theme uses Bootstrap', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                        'label' => $this->trans('Motyw korzysta z Bootstrap', [], 'Modules.Aplinesimplesliderbanner.Admin'),
                         'name' => self::BOOTSTRAP_KEY,
                         'is_bool' => true,
                         'values' => $boolSwitch('bootstrap'),
-                        'desc' => $this->trans('Turn on only if your theme loads Bootstrap (the PrestaShop Classic theme does). When on, the slider can be wrapped in a .container / .container-fluid per viewport below. When off, the slider stays edge to edge and the container options have no effect.', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                        'desc' => $this->trans('Włącz tylko, jeśli motyw ładuje Bootstrap (np. Classic). Pozwala to ustawić .container lub .container-fluid osobno dla komputera i telefonu. Po wyłączeniu slider zajmuje całą szerokość i ignoruje ustawienia kontenera.', [], 'Modules.Aplinesimplesliderbanner.Admin'),
                     ],
                     [
                         'type' => 'select',
-                        'label' => $this->trans('Desktop container', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                        'label' => $this->trans('Kontener na komputerze', [], 'Modules.Aplinesimplesliderbanner.Admin'),
                         'name' => self::CONTAINER_DESKTOP_KEY,
                         'options' => ['query' => $containerOptions, 'id' => 'id', 'name' => 'name'],
-                        'desc' => $this->trans('How the slider is wrapped on desktop (needs Bootstrap on).', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                        'desc' => $this->trans('Układ slidera na komputerze (wymaga włączonego Bootstrap).', [], 'Modules.Aplinesimplesliderbanner.Admin'),
                     ],
                     [
                         'type' => 'select',
-                        'label' => $this->trans('Mobile container', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                        'label' => $this->trans('Kontener na telefonie', [], 'Modules.Aplinesimplesliderbanner.Admin'),
                         'name' => self::CONTAINER_MOBILE_KEY,
                         'options' => ['query' => $containerOptions, 'id' => 'id', 'name' => 'name'],
-                        'desc' => $this->trans('How the slider is wrapped on mobile (needs Bootstrap on).', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                        'desc' => $this->trans('Układ slidera na telefonie (wymaga włączonego Bootstrap).', [], 'Modules.Aplinesimplesliderbanner.Admin'),
                     ],
                     [
                         'type' => 'text',
-                        'label' => $this->trans('Custom CSS class', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                        'label' => $this->trans('Własna klasa CSS', [], 'Modules.Aplinesimplesliderbanner.Admin'),
                         'name' => self::CUSTOM_CLASS_KEY,
                         'class' => 'fixed-width-xxl',
-                        'desc' => $this->trans('Optional. Added to the slider root element so you can target it with your own CSS. Letters, digits, spaces, dashes and underscores only (max 64 chars).', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                        'desc' => $this->trans('Opcjonalna klasa głównego elementu slidera do własnych stylów CSS. Tylko litery, cyfry, spacje, myślniki i podkreślenia (maks. 64 znaki).', [], 'Modules.Aplinesimplesliderbanner.Admin'),
                     ],
                 ],
-                'submit' => ['title' => $this->trans('Save', [], 'Admin.Actions')],
+                'submit' => ['class' => 'btn btn-primary btn-lg apline-btn-duzy pull-right', 'title' => $this->trans('Zapisz', [], 'Admin.Actions')],
             ],
         ];
 
@@ -899,9 +900,9 @@ class apline_simple_slider_banner extends Module implements WidgetInterface
             // Distinct background colours so the admin can visually confirm
             // all 3 demo slides loaded correctly on a fresh install.
             $palette = [
-                ['rgb' => [54, 96, 153],  'label' => 'Sample Slide 1'],   // steel blue
-                ['rgb' => [102, 51, 102], 'label' => 'Sample Slide 2'],   // muted purple
-                ['rgb' => [153, 102, 51], 'label' => 'Sample Slide 3'],   // warm brown
+                ['rgb' => [54, 96, 153],  'label' => 'Przykladowy slajd 1'],   // steel blue
+                ['rgb' => [102, 51, 102], 'label' => 'Przykladowy slajd 2'],   // muted purple
+                ['rgb' => [153, 102, 51], 'label' => 'Przykladowy slajd 3'],   // warm brown
             ];
 
             $now = date('Y-m-d H:i:s');
@@ -932,8 +933,8 @@ class apline_simple_slider_banner extends Module implements WidgetInterface
                     'title' => pSQL($slide['label']),
                     'image_desktop' => $okDesktop ? pSQL($baseUrl . $desktopName) : '',
                     'image_mobile' => $okMobile ? pSQL($baseUrl . $mobileName) : '',
-                    'alt_desktop' => pSQL($slide['label'] . ' (desktop)'),
-                    'alt_mobile' => pSQL($slide['label'] . ' (mobile)'),
+                    'alt_desktop' => pSQL($slide['label'] . ' (komputer)'),
+                    'alt_mobile' => pSQL($slide['label'] . ' (telefon)'),
                     'url' => $position < 3 ? pSQL('https://www.prestashop-project.org') : '',
                     'show_on_desktop' => 1,
                     'show_on_mobile' => $position < 3 ? 1 : 0, // 3rd slide = desktop-only example
@@ -999,7 +1000,7 @@ class apline_simple_slider_banner extends Module implements WidgetInterface
             imagestring($im, $fontSize, $x, $y, $label, $fg);
 
             // Sub-label hint underneath.
-            $hint = 'Replace via Manage slides';
+            $hint = 'Zmien w: Zarzadzaj slajdami';
             $hintW = imagefontwidth($fontSize) * strlen($hint);
             $hintX = (int) (($width - $hintW) / 2);
             imagestring($im, $fontSize, $hintX, $y + $textH + 12, $hint, $fg);
@@ -1033,7 +1034,7 @@ class apline_simple_slider_banner extends Module implements WidgetInterface
             .apline-credit a { font-weight: 600; }
         </style>
         <div class="apline-credit">
-            ' . $this->trans('Module created by', [], 'Modules.Aplinesimplesliderbanner.Admin') . '
+            ' . $this->trans('Autor modułu:', [], 'Modules.Aplinesimplesliderbanner.Admin') . '
             <a href="https://apline.pl" target="_blank" rel="noopener noreferrer">APLINE</a>
         </div>';
     }
@@ -1047,8 +1048,8 @@ class apline_simple_slider_banner extends Module implements WidgetInterface
     {
         return '
         <div class="panel">
-            <h3>&#9749; ' . $this->trans('Like this module?', [], 'Modules.Aplinesimplesliderbanner.Admin') . '</h3>
-            <p>' . $this->trans('Need custom PrestaShop development, performance optimization or integrations?', [], 'Modules.Aplinesimplesliderbanner.Admin') . '</p>
+            <h3>&#9749; ' . $this->trans('Podoba Ci się ten moduł?', [], 'Modules.Aplinesimplesliderbanner.Admin') . '</h3>
+            <p>' . $this->trans('Potrzebujesz rozwoju PrestaShop, optymalizacji wydajności lub integracji?', [], 'Modules.Aplinesimplesliderbanner.Admin') . '</p>
             <a class="btn btn-default" href="https://apline.pl" target="_blank" rel="noopener noreferrer">&#8594; APLINE.PL</a>
         </div>';
     }
@@ -1086,7 +1087,7 @@ class apline_simple_slider_banner extends Module implements WidgetInterface
 
     /**
      * Render the slider. Wrapped so any failure yields an empty block
-     * instead of a 500 (workspace CLAUDE.md §3.1 crash-safety).
+     * instead of a 500 .
      *
      * @param array $params
      *

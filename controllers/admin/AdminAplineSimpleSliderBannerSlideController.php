@@ -48,43 +48,43 @@ class AdminAplineSimpleSliderBannerSlideController extends ModuleAdminController
                 'class' => 'fixed-width-xs',
             ],
             'image_desktop' => [
-                'title' => $this->trans('Desktop', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                'title' => $this->trans('Komputer', [], 'Modules.Aplinesimplesliderbanner.Admin'),
                 'align' => 'center',
                 'callback' => 'printImageDesktop',
                 'orderby' => false,
                 'search' => false,
             ],
             'image_mobile' => [
-                'title' => $this->trans('Mobile', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                'title' => $this->trans('Telefon', [], 'Modules.Aplinesimplesliderbanner.Admin'),
                 'align' => 'center',
                 'callback' => 'printImageMobile',
                 'orderby' => false,
                 'search' => false,
             ],
             'title' => [
-                'title' => $this->trans('Title (internal)', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                'title' => $this->trans('Tytuł (wewnętrzny)', [], 'Modules.Aplinesimplesliderbanner.Admin'),
             ],
             'url' => [
-                'title' => $this->trans('Link URL', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                'title' => $this->trans('Adres linku', [], 'Modules.Aplinesimplesliderbanner.Admin'),
                 'callback' => 'printUrl',
                 'search' => false,
             ],
             'viewports' => [
-                'title' => $this->trans('Viewports', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                'title' => $this->trans('Ekrany', [], 'Modules.Aplinesimplesliderbanner.Admin'),
                 'align' => 'center',
                 'callback' => 'printViewports',
                 'orderby' => false,
                 'search' => false,
             ],
             'active' => [
-                'title' => $this->trans('Displayed', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                'title' => $this->trans('Widoczny', [], 'Modules.Aplinesimplesliderbanner.Admin'),
                 'align' => 'center',
                 'active' => 'active',
                 'type' => 'bool',
                 'orderby' => false,
             ],
             'position' => [
-                'title' => $this->trans('Position', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                'title' => $this->trans('Pozycja', [], 'Modules.Aplinesimplesliderbanner.Admin'),
                 'align' => 'center',
                 'position' => 'position',
                 'search' => false,
@@ -98,8 +98,8 @@ class AdminAplineSimpleSliderBannerSlideController extends ModuleAdminController
         $this->addRowAction('delete');
         $this->bulk_actions = [
             'delete' => [
-                'text' => $this->trans('Delete selected', [], 'Admin.Actions'),
-                'confirm' => $this->trans('Delete selected slides?', [], 'Admin.Notifications.Warning'),
+                'text' => $this->trans('Usuń zaznaczone', [], 'Admin.Actions'),
+                'confirm' => $this->trans('Usunąć zaznaczone slajdy?', [], 'Admin.Notifications.Warning'),
             ],
         ];
     }
@@ -129,7 +129,7 @@ class AdminAplineSimpleSliderBannerSlideController extends ModuleAdminController
 
         $this->page_header_toolbar_btn['back_to_config'] = [
             'href' => $this->getConfigUrl(),
-            'desc' => $this->trans('Back to configuration', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+            'desc' => $this->trans('Wróć do konfiguracji', [], 'Modules.Aplinesimplesliderbanner.Admin'),
             'icon' => 'process-icon-back',
         ];
     }
@@ -142,7 +142,7 @@ class AdminAplineSimpleSliderBannerSlideController extends ModuleAdminController
         $back = '<div style="margin:10px 0;"><a class="btn btn-default" href="'
             . htmlspecialchars($this->getConfigUrl(), ENT_QUOTES)
             . '"><i class="icon-chevron-left"></i> '
-            . $this->trans('Back to configuration', [], 'Modules.Aplinesimplesliderbanner.Admin')
+            . $this->trans('Wróć do konfiguracji', [], 'Modules.Aplinesimplesliderbanner.Admin')
             . '</a></div>';
 
         $credit = method_exists($this->module, 'renderAplineFooter')
@@ -191,7 +191,7 @@ class AdminAplineSimpleSliderBannerSlideController extends ModuleAdminController
     {
         $url = trim((string) $value);
         if ($url === '') {
-            return '<em class="text-muted">' . $this->trans('no link', [], 'Modules.Aplinesimplesliderbanner.Admin') . '</em>';
+            return '<em class="text-muted">' . $this->trans('bez linku', [], 'Modules.Aplinesimplesliderbanner.Admin') . '</em>';
         }
 
         $display = $url;
@@ -213,17 +213,17 @@ class AdminAplineSimpleSliderBannerSlideController extends ModuleAdminController
         $mobile = !empty($row['show_on_mobile']);
 
         if ($desktop && $mobile) {
-            return '<span class="badge badge-success" title="Both viewports">'
-                . $this->trans('Desktop + Mobile', [], 'Modules.Aplinesimplesliderbanner.Admin') . '</span>';
+            return '<span class="badge badge-success" title="Komputer i telefon">'
+                . $this->trans('Komputer i telefon', [], 'Modules.Aplinesimplesliderbanner.Admin') . '</span>';
         }
         if ($desktop) {
-            return '<span class="badge badge-info">' . $this->trans('Desktop only', [], 'Modules.Aplinesimplesliderbanner.Admin') . '</span>';
+            return '<span class="badge badge-info">' . $this->trans('Tylko komputer', [], 'Modules.Aplinesimplesliderbanner.Admin') . '</span>';
         }
         if ($mobile) {
-            return '<span class="badge badge-info">' . $this->trans('Mobile only', [], 'Modules.Aplinesimplesliderbanner.Admin') . '</span>';
+            return '<span class="badge badge-info">' . $this->trans('Tylko telefon', [], 'Modules.Aplinesimplesliderbanner.Admin') . '</span>';
         }
 
-        return '<span class="badge badge-danger">' . $this->trans('Hidden', [], 'Modules.Aplinesimplesliderbanner.Admin') . '</span>';
+        return '<span class="badge badge-danger">' . $this->trans('Ukryty', [], 'Modules.Aplinesimplesliderbanner.Admin') . '</span>';
     }
 
     // ------------------------------------------------------------------
@@ -232,105 +232,106 @@ class AdminAplineSimpleSliderBannerSlideController extends ModuleAdminController
 
     public function renderForm()
     {
+        $this->addCSS($this->module->getPathUri() . 'views/css/admin.css');
         $this->fields_form = [
             'legend' => [
-                'title' => $this->trans('Slide', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                'title' => $this->trans('Slajd', [], 'Modules.Aplinesimplesliderbanner.Admin'),
                 'icon' => 'icon-picture',
             ],
             'input' => [
                 [
                     'type' => 'text',
-                    'label' => $this->trans('Title (internal)', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                    'label' => $this->trans('Tytuł (wewnętrzny)', [], 'Modules.Aplinesimplesliderbanner.Admin'),
                     'name' => 'title',
                     'required' => true,
-                    'desc' => $this->trans('Internal label used only to tell slides apart in this admin list. NOT shown on the front-end.', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                    'desc' => $this->trans('Nazwa do rozróżniania slajdów na liście w panelu. Nie jest wyświetlana klientom.', [], 'Modules.Aplinesimplesliderbanner.Admin'),
                 ],
                 [
                     'type' => 'file',
-                    'label' => $this->trans('Desktop image', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                    'label' => $this->trans('Obraz na komputer', [], 'Modules.Aplinesimplesliderbanner.Admin'),
                     'name' => 'image_desktop_file',
-                    'desc' => $this->trans('Optional. Suggested ratio 16:9 (e.g. 1920x1080). Allowed: JPG, PNG, WEBP. Max 4 MB.', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                    'desc' => $this->trans('Opcjonalny. Zalecane proporcje 16:9 (np. 1920×1080). Formaty: JPG, PNG, WEBP. Maks. 4 MB.', [], 'Modules.Aplinesimplesliderbanner.Admin'),
                 ],
                 [
                     'type' => 'switch',
-                    'label' => $this->trans('Remove current desktop image', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                    'label' => $this->trans('Usuń obecny obraz na komputer', [], 'Modules.Aplinesimplesliderbanner.Admin'),
                     'name' => 'remove_image_desktop',
                     'is_bool' => true,
-                    'desc' => $this->trans('Turn on and save to delete the current desktop image. Ignored when a new desktop image is uploaded above.', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                    'desc' => $this->trans('Włącz i zapisz, aby usunąć obecny obraz. Opcja jest pomijana, jeśli przesyłasz nowy obraz powyżej.', [], 'Modules.Aplinesimplesliderbanner.Admin'),
                     'values' => [
-                        ['id' => 'remove_desktop_on', 'value' => 1, 'label' => $this->trans('Yes', [], 'Admin.Global')],
-                        ['id' => 'remove_desktop_off', 'value' => 0, 'label' => $this->trans('No', [], 'Admin.Global')],
+                        ['id' => 'remove_desktop_on', 'value' => 1, 'label' => $this->trans('Tak', [], 'Admin.Global')],
+                        ['id' => 'remove_desktop_off', 'value' => 0, 'label' => $this->trans('Nie', [], 'Admin.Global')],
                     ],
                 ],
                 [
                     'type' => 'text',
-                    'label' => $this->trans('Alt text (desktop)', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                    'label' => $this->trans('Tekst alternatywny (komputer)', [], 'Modules.Aplinesimplesliderbanner.Admin'),
                     'name' => 'alt_desktop',
-                    'desc' => $this->trans('Description for screen readers and SEO. Auto-filled from the filename if left empty.', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                    'desc' => $this->trans('Opis dla czytników ekranu i SEO. Jeśli pusty, zostanie uzupełniony z nazwy pliku.', [], 'Modules.Aplinesimplesliderbanner.Admin'),
                 ],
                 [
                     'type' => 'file',
-                    'label' => $this->trans('Mobile image', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                    'label' => $this->trans('Obraz na telefon', [], 'Modules.Aplinesimplesliderbanner.Admin'),
                     'name' => 'image_mobile_file',
-                    'desc' => $this->trans('Optional. Suggested ratio 4:3 (e.g. 800x600) or 1:1 (e.g. 800x800). Allowed: JPG, PNG, WEBP. Max 4 MB.', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                    'desc' => $this->trans('Opcjonalny. Zalecane proporcje 4:3 (np. 800×600) lub 1:1 (np. 800×800). Formaty: JPG, PNG, WEBP. Maks. 4 MB.', [], 'Modules.Aplinesimplesliderbanner.Admin'),
                 ],
                 [
                     'type' => 'switch',
-                    'label' => $this->trans('Remove current mobile image', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                    'label' => $this->trans('Usuń obecny obraz na telefon', [], 'Modules.Aplinesimplesliderbanner.Admin'),
                     'name' => 'remove_image_mobile',
                     'is_bool' => true,
-                    'desc' => $this->trans('Turn on and save to delete the current mobile image. Ignored when a new mobile image is uploaded above.', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                    'desc' => $this->trans('Włącz i zapisz, aby usunąć obecny obraz na telefon. Opcja jest pomijana, jeśli przesyłasz nowy obraz powyżej.', [], 'Modules.Aplinesimplesliderbanner.Admin'),
                     'values' => [
-                        ['id' => 'remove_mobile_on', 'value' => 1, 'label' => $this->trans('Yes', [], 'Admin.Global')],
-                        ['id' => 'remove_mobile_off', 'value' => 0, 'label' => $this->trans('No', [], 'Admin.Global')],
+                        ['id' => 'remove_mobile_on', 'value' => 1, 'label' => $this->trans('Tak', [], 'Admin.Global')],
+                        ['id' => 'remove_mobile_off', 'value' => 0, 'label' => $this->trans('Nie', [], 'Admin.Global')],
                     ],
                 ],
                 [
                     'type' => 'text',
-                    'label' => $this->trans('Alt text (mobile)', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                    'label' => $this->trans('Tekst alternatywny (telefon)', [], 'Modules.Aplinesimplesliderbanner.Admin'),
                     'name' => 'alt_mobile',
-                    'desc' => $this->trans('Description for screen readers and SEO. Auto-filled from the filename if left empty.', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                    'desc' => $this->trans('Opis dla czytników ekranu i SEO. Jeśli pusty, zostanie uzupełniony z nazwy pliku.', [], 'Modules.Aplinesimplesliderbanner.Admin'),
                 ],
                 [
                     'type' => 'text',
-                    'label' => $this->trans('Link URL', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                    'label' => $this->trans('Adres linku', [], 'Modules.Aplinesimplesliderbanner.Admin'),
                     'name' => 'url',
-                    'desc' => $this->trans('Optional. Clicking the slide leads here. Leave empty to render a non-clickable slide. Accepts both absolute ("https://...") and relative ("/category/foo") URLs.', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                    'desc' => $this->trans('Opcjonalny adres docelowy po kliknięciu slajdu. Pusty oznacza slajd bez linku. Obsługiwane są adresy bezwzględne (https://...) i względne (/kategoria/przyklad).', [], 'Modules.Aplinesimplesliderbanner.Admin'),
                 ],
                 [
                     'type' => 'switch',
-                    'label' => $this->trans('Show on desktop', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                    'label' => $this->trans('Pokaż na komputerze', [], 'Modules.Aplinesimplesliderbanner.Admin'),
                     'name' => 'show_on_desktop',
                     'is_bool' => true,
-                    'desc' => $this->trans('Whether this slide appears in the desktop slider (viewports >= 768px). Requires a desktop image — the slide is rejected on save if this is on and no desktop image is uploaded. There is no fallback to the mobile image.', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                    'desc' => $this->trans('Wyświetlaj na ekranach od 768 px. Wymagany jest obraz na komputer; formularz odrzuci zapis bez niego. Obraz telefonu nie jest używany zastępczo.', [], 'Modules.Aplinesimplesliderbanner.Admin'),
                     'values' => [
-                        ['id' => 'show_desktop_on', 'value' => 1, 'label' => $this->trans('Yes', [], 'Admin.Global')],
-                        ['id' => 'show_desktop_off', 'value' => 0, 'label' => $this->trans('No', [], 'Admin.Global')],
+                        ['id' => 'show_desktop_on', 'value' => 1, 'label' => $this->trans('Tak', [], 'Admin.Global')],
+                        ['id' => 'show_desktop_off', 'value' => 0, 'label' => $this->trans('Nie', [], 'Admin.Global')],
                     ],
                 ],
                 [
                     'type' => 'switch',
-                    'label' => $this->trans('Show on mobile', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                    'label' => $this->trans('Pokaż na telefonie', [], 'Modules.Aplinesimplesliderbanner.Admin'),
                     'name' => 'show_on_mobile',
                     'is_bool' => true,
-                    'desc' => $this->trans('Whether this slide appears in the mobile slider (viewports <= 767px). Requires a mobile image — the slide is rejected on save if this is on and no mobile image is uploaded. There is no fallback to the desktop image.', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                    'desc' => $this->trans('Wyświetlaj na ekranach do 767 px. Wymagany jest obraz na telefon; formularz odrzuci zapis bez niego. Obraz komputera nie jest używany zastępczo.', [], 'Modules.Aplinesimplesliderbanner.Admin'),
                     'values' => [
-                        ['id' => 'show_mobile_on', 'value' => 1, 'label' => $this->trans('Yes', [], 'Admin.Global')],
-                        ['id' => 'show_mobile_off', 'value' => 0, 'label' => $this->trans('No', [], 'Admin.Global')],
+                        ['id' => 'show_mobile_on', 'value' => 1, 'label' => $this->trans('Tak', [], 'Admin.Global')],
+                        ['id' => 'show_mobile_off', 'value' => 0, 'label' => $this->trans('Nie', [], 'Admin.Global')],
                     ],
                 ],
                 [
                     'type' => 'switch',
-                    'label' => $this->trans('Displayed', [], 'Modules.Aplinesimplesliderbanner.Admin'),
+                    'label' => $this->trans('Widoczny', [], 'Modules.Aplinesimplesliderbanner.Admin'),
                     'name' => 'active',
                     'is_bool' => true,
                     'values' => [
-                        ['id' => 'active_on', 'value' => 1, 'label' => $this->trans('Yes', [], 'Admin.Global')],
-                        ['id' => 'active_off', 'value' => 0, 'label' => $this->trans('No', [], 'Admin.Global')],
+                        ['id' => 'active_on', 'value' => 1, 'label' => $this->trans('Tak', [], 'Admin.Global')],
+                        ['id' => 'active_off', 'value' => 0, 'label' => $this->trans('Nie', [], 'Admin.Global')],
                     ],
                 ],
             ],
-            'submit' => ['title' => $this->trans('Save', [], 'Admin.Actions')],
+            'submit' => ['class' => 'btn btn-primary btn-lg apline-btn-duzy pull-right', 'title' => $this->trans('Zapisz', [], 'Admin.Actions')],
         ];
 
         // Preview of the current images when editing.
@@ -449,7 +450,7 @@ class AdminAplineSimpleSliderBannerSlideController extends ModuleAdminController
             if ($isUpdate) {
                 $existing = new AplineSimpleSliderBannerSlide((int) Tools::getValue($this->identifier));
                 if (!Validate::isLoadedObject($existing)) {
-                    $this->errors[] = $this->trans('The slide you are trying to edit does not exist.', [], 'Modules.Aplinesimplesliderbanner.Admin');
+                    $this->errors[] = $this->trans('Slajd, który próbujesz edytować, nie istnieje.', [], 'Modules.Aplinesimplesliderbanner.Admin');
 
                     return false;
                 }
@@ -492,30 +493,30 @@ class AdminAplineSimpleSliderBannerSlideController extends ModuleAdminController
 
         // ---------- Validation 1: title required + length ----------
         if ($title === '') {
-            $this->errors[] = $this->trans('Title is required.', [], 'Modules.Aplinesimplesliderbanner.Admin');
+            $this->errors[] = $this->trans('Tytuł jest wymagany.', [], 'Modules.Aplinesimplesliderbanner.Admin');
         } elseif (mb_strlen($title) > self::MAX_STRING) {
-            $this->errors[] = $this->trans('Title exceeds the maximum length of %d characters.', [self::MAX_STRING], 'Modules.Aplinesimplesliderbanner.Admin');
+            $this->errors[] = $this->trans('Tytuł przekracza limit %d znaków.', [self::MAX_STRING], 'Modules.Aplinesimplesliderbanner.Admin');
         }
 
         // ---------- Validation 5: max length for alt fields ----------
-        foreach (['Alt (desktop)' => $altDesktop, 'Alt (mobile)' => $altMobile] as $label => $value) {
+        foreach (['Tekst alternatywny (komputer)' => $altDesktop, 'Tekst alternatywny (telefon)' => $altMobile] as $label => $value) {
             if (mb_strlen($value) > self::MAX_STRING) {
-                $this->errors[] = $this->trans('The field "%s" exceeds the maximum length of %d characters.', [$label, self::MAX_STRING], 'Modules.Aplinesimplesliderbanner.Admin');
+                $this->errors[] = $this->trans('Pole "%s" przekracza limit %d znaków.', [$label, self::MAX_STRING], 'Modules.Aplinesimplesliderbanner.Admin');
             }
         }
 
         // ---------- Validation 4 + 5: URL format + max length ----------
         if ($url !== '') {
             if (mb_strlen($url) > self::MAX_URL) {
-                $this->errors[] = $this->trans('URL exceeds the maximum length of %d characters.', [self::MAX_URL], 'Modules.Aplinesimplesliderbanner.Admin');
+                $this->errors[] = $this->trans('Adres linku przekracza limit %d znaków.', [self::MAX_URL], 'Modules.Aplinesimplesliderbanner.Admin');
             } elseif (!Validate::isUrl($url)) {
-                $this->errors[] = $this->trans('The URL is not valid.', [], 'Modules.Aplinesimplesliderbanner.Admin');
+                $this->errors[] = $this->trans('Adres linku jest nieprawidłowy.', [], 'Modules.Aplinesimplesliderbanner.Admin');
             }
         }
 
         // ---------- Validation 6: at-least-one viewport on ----------
         if (!$showOnDesktop && !$showOnMobile) {
-            $this->errors[] = $this->trans('The slide must be visible on at least one viewport (desktop or mobile).', [], 'Modules.Aplinesimplesliderbanner.Admin');
+            $this->errors[] = $this->trans('Slajd musi być widoczny na co najmniej jednym ekranie (komputer lub telefon).', [], 'Modules.Aplinesimplesliderbanner.Admin');
         }
 
         // ---------- Validation 7: upload hardening for BOTH file fields ----------
@@ -541,7 +542,7 @@ class AdminAplineSimpleSliderBannerSlideController extends ModuleAdminController
 
         // ---------- Validation 2: at-least-one image after the smoke clears ----------
         if (empty($effectiveDesktop) && empty($effectiveMobile)) {
-            $this->errors[] = $this->trans('The slide must have at least one image (desktop or mobile).', [], 'Modules.Aplinesimplesliderbanner.Admin');
+            $this->errors[] = $this->trans('Slajd musi mieć co najmniej jeden obraz (komputer lub telefon).', [], 'Modules.Aplinesimplesliderbanner.Admin');
         }
 
         // ---------- Validation v1.1.0: visibility flag requires matching image ----------
@@ -551,10 +552,10 @@ class AdminAplineSimpleSliderBannerSlideController extends ModuleAdminController
         // Reject the submission instead so the admin explicitly chooses:
         // upload the image, or disable the visibility flag.
         if ($showOnDesktop && empty($effectiveDesktop)) {
-            $this->errors[] = $this->trans('Desktop visibility is enabled but no desktop image is set. Upload a desktop image or disable "Show on desktop".', [], 'Modules.Aplinesimplesliderbanner.Admin');
+            $this->errors[] = $this->trans('Włączono widoczność na komputerze, ale brakuje obrazu. Prześlij obraz lub wyłącz opcję Pokaż na komputerze.', [], 'Modules.Aplinesimplesliderbanner.Admin');
         }
         if ($showOnMobile && empty($effectiveMobile)) {
-            $this->errors[] = $this->trans('Mobile visibility is enabled but no mobile image is set. Upload a mobile image or disable "Show on mobile".', [], 'Modules.Aplinesimplesliderbanner.Admin');
+            $this->errors[] = $this->trans('Włączono widoczność na telefonie, ale brakuje obrazu. Prześlij obraz lub wyłącz opcję Pokaż na telefonie.', [], 'Modules.Aplinesimplesliderbanner.Admin');
         }
 
         // ---------- Validation 3: alt required when image is set; auto-fill from filename ----------
@@ -613,7 +614,7 @@ class AdminAplineSimpleSliderBannerSlideController extends ModuleAdminController
 
     /**
      * Validates an uploaded file from $_FILES[$fieldName] using the
-     * workspace CLAUDE.md §3.3 5-layer hardening (extension whitelist +
+     * Upload validation 5-layer hardening (extension whitelist +
      * byte cap + getimagesize + ImageManager::isRealImage + @unlink fail
      * cleanup). Returns the public relative path of the saved file on
      * success, null if no file was sent, or false on validation error
@@ -633,29 +634,29 @@ class AdminAplineSimpleSliderBannerSlideController extends ModuleAdminController
         }
 
         $file = $_FILES[$fieldName];
-        $label = $fieldName === 'image_desktop_file' ? 'desktop' : 'mobile';
+        $label = $fieldName === 'image_desktop_file' ? 'komputer' : 'telefon';
 
         if ($file['error'] !== UPLOAD_ERR_OK) {
-            $this->errors[] = $this->trans('The %s image upload failed. Please try again.', [$label], 'Modules.Aplinesimplesliderbanner.Admin');
+            $this->errors[] = $this->trans('Nie udało się przesłać obrazu (%s). Spróbuj ponownie.', [$label], 'Modules.Aplinesimplesliderbanner.Admin');
 
             return false;
         }
 
         $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
         if (!in_array($ext, self::ALLOWED_EXT, true)) {
-            $this->errors[] = $this->trans('Invalid %s image format. Allowed formats: JPG, PNG, WEBP.', [$label], 'Modules.Aplinesimplesliderbanner.Admin');
+            $this->errors[] = $this->trans('Nieprawidłowy format obrazu (%s). Dozwolone: JPG, PNG, WEBP.', [$label], 'Modules.Aplinesimplesliderbanner.Admin');
 
             return false;
         }
 
         if ((int) $file['size'] > self::MAX_IMG_BYTES) {
-            $this->errors[] = $this->trans('The %s image is too large. Maximum size is 4 MB.', [$label], 'Modules.Aplinesimplesliderbanner.Admin');
+            $this->errors[] = $this->trans('Obraz (%s) jest zbyt duży. Maksymalny rozmiar to 4 MB.', [$label], 'Modules.Aplinesimplesliderbanner.Admin');
 
             return false;
         }
 
         // Inspect real content, not just the extension: blocks an executable
-        // payload renamed with an image extension (workspace CLAUDE.md §3.3).
+        // payload renamed with an image extension .
         $info = @getimagesize($file['tmp_name']);
         $realMime = is_array($info) && isset($info['mime']) ? $info['mime'] : '';
         $isRealImage = class_exists('ImageManager')
@@ -663,7 +664,7 @@ class AdminAplineSimpleSliderBannerSlideController extends ModuleAdminController
             : in_array($realMime, self::ALLOWED_MIME, true);
 
         if (!$info || !in_array($realMime, self::ALLOWED_MIME, true) || !$isRealImage) {
-            $this->errors[] = $this->trans('The uploaded %s file is not a valid image.', [$label], 'Modules.Aplinesimplesliderbanner.Admin');
+            $this->errors[] = $this->trans('Przesłany plik (%s) nie jest poprawnym obrazem.', [$label], 'Modules.Aplinesimplesliderbanner.Admin');
 
             return false;
         }
@@ -672,7 +673,7 @@ class AdminAplineSimpleSliderBannerSlideController extends ModuleAdminController
         $dest = $this->module->getUploadDir() . $fileName;
 
         if (!@move_uploaded_file($file['tmp_name'], $dest)) {
-            $this->errors[] = $this->trans('Could not save the uploaded %s image. Check folder permissions.', [$label], 'Modules.Aplinesimplesliderbanner.Admin');
+            $this->errors[] = $this->trans('Nie udało się zapisać obrazu (%s). Sprawdź uprawnienia katalogu.', [$label], 'Modules.Aplinesimplesliderbanner.Admin');
 
             return false;
         }

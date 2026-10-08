@@ -83,7 +83,7 @@ class AplineSimpleSliderBannerSlide extends ObjectModel
     /**
      * Active slides ordered by position, for front rendering.
      * Guarded so a missing or corrupted table never breaks the shop front
-     * (workspace CLAUDE.md §3.1 crash-safety) — render code (CP04) treats
+     *  — render code (CP04) treats
      * an empty array as "render nothing".
      *
      * @return array
