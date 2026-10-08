@@ -7,9 +7,9 @@
  * Each row represents one slide with separate desktop and mobile images,
  * optional click URL, per-viewport visibility flags and position ordering.
  *
- * @author    APLINE Arkadiusz Pielechowski
- * @copyright APLINE Arkadiusz Pielechowski
- * @license   Custom Attribution License v1.0 - see LICENSE.md
+ * @author    Arkadiusz Pielechowski
+ * @copyright Arkadiusz Pielechowski
+ * @license   MIT - see LICENSE.md
  */
 if (!defined('_PS_VERSION_')) {
     exit;
@@ -101,6 +101,32 @@ class AplineSimpleSliderBannerSlide extends ObjectModel
         } catch (\Throwable $e) {
             return [];
         }
+    }
+
+    /**
+     * Detect remaining installer images, including inactive slides.
+     * Uploaded replacements use a different filename prefix.
+     *
+     * @return bool
+     */
+    public static function hasDemoImages()
+    {
+        try {
+            $rows = Db::getInstance()->executeS(
+                'SELECT `image_desktop`, `image_mobile` FROM `' . _DB_PREFIX_ . 'assb_slide`'
+            );
+            foreach (is_array($rows) ? $rows : [] as $row) {
+                foreach (['image_desktop', 'image_mobile'] as $field) {
+                    if (preg_match('/^assb_seed_[1-3]_(desktop|mobile)_[a-f0-9]{13,14}\.[0-9]{8}\.jpg$/', basename((string) ($row[$field] ?? '')))) {
+                        return true;
+                    }
+                }
+            }
+        } catch (\Throwable $e) {
+            return false;
+        }
+
+        return false;
     }
 
     /**

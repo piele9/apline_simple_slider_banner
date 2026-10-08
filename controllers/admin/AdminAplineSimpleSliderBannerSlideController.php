@@ -11,9 +11,9 @@
  * PDF Instructions module hot-fix where a single image had a removal
  * switch — here we apply it twice in parallel.
  *
- * @author    APLINE Arkadiusz Pielechowski
- * @copyright APLINE Arkadiusz Pielechowski
- * @license   Custom Attribution License v1.0 - see LICENSE.md
+ * @author    Arkadiusz Pielechowski
+ * @copyright Arkadiusz Pielechowski
+ * @license   MIT - see LICENSE.md
  */
 if (!defined('_PS_VERSION_')) {
     exit;
@@ -138,7 +138,7 @@ class AdminAplineSimpleSliderBannerSlideController extends ModuleAdminController
     {
         $list = parent::renderList();
 
-        // Breadcrumb-style back link + mandatory APLINE attribution under the table.
+        // Breadcrumb-style back link + author credit under the table.
         $back = '<div style="margin:10px 0;"><a class="btn btn-default" href="'
             . htmlspecialchars($this->getConfigUrl(), ENT_QUOTES)
             . '"><i class="icon-chevron-left"></i> '

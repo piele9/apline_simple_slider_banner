@@ -17,7 +17,7 @@
  *   - Keyboard a11y on dots (Enter/Space activate)
  *   - Multiple sliders on one page supported (each gets its own instance)
  *
- * @author APLINE Arkadiusz Pielechowski
+ * @author Arkadiusz Pielechowski
  */
 (function () {
     'use strict';

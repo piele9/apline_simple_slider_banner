@@ -33,7 +33,7 @@
  *                     w_mobile, h_mobile, bootstrap, container_desktop,
  *                     container_mobile, custom_class}
  *
- * @author APLINE Arkadiusz Pielechowski
+ * @author Arkadiusz Pielechowski
  *}
 {if ($slides_desktop|@count) || ($slides_mobile|@count)}
 {assign var=assb_cd value=''}

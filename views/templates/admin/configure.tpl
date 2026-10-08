@@ -6,7 +6,7 @@
  * speed, navigation style, transition) is appended by getContent() below
  * this panel (final form lives in CP06).
  *
- * @author APLINE Arkadiusz Pielechowski
+ * @author Arkadiusz Pielechowski
  *}
 <div class="panel">
   <div class="panel-heading">
@@ -22,8 +22,10 @@
       {l s='Zarządzaj slajdami' d='Modules.Aplinesimplesliderbanner.Admin'}
     </a>
   </p>
+  {if $assb_has_demo_images}
   <p class="text-muted small">
     <i class="icon-info-circle"></i>
-    {l s='Podczas instalacji powstają 3 przykładowe slajdy w różnych kolorach. Zastąp je własnymi banerami w panelu zarządzania slajdami.' d='Modules.Aplinesimplesliderbanner.Admin'}
+    {l s='W module są jeszcze przykładowe obrazy slajdów. Zastąp je własnymi banerami w panelu zarządzania slajdami.' d='Modules.Aplinesimplesliderbanner.Admin'}
   </p>
+  {/if}
 </div>

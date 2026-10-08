@@ -43,6 +43,6 @@ Odinstalowanie usuwa tabelę slajdów, konfigurację i obrazy przesłane przez m
 
 ## Historia zmian i licencja
 
-Zmiany wersji: [CHANGELOG.md](CHANGELOG.md). Warunki: [LICENSE.md](LICENSE.md), Custom Attribution License v1.0. Dozwolone są użycie komercyjne, modyfikacje i dystrybucja przy zachowaniu widocznego odnośnika APLINE w konfiguracji.
+Zmiany wersji: [CHANGELOG.md](CHANGELOG.md). Licencja MIT — pełny tekst w [LICENSE.md](LICENSE.md). Moduł możesz używać, zmieniać i rozpowszechniać, także komercyjnie; zachowaj tylko informację o prawach autorskich i licencji.
 
-Autor: **APLINE Arkadiusz Pielechowski** — [apline.pl](https://apline.pl).
+Autor: **Arkadiusz Pielechowski** — [pielechowski.pl](https://pielechowski.pl).
